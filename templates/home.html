@@ -3,18 +3,5 @@
 
 
 {% block content %}
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
-        <div class="border shadow-md p-5 rounded-md w-full mx-auto">
-            {% for service in services %}
-                <h2 class="text-normal text-gray-800">{{ service.name }}</h2>
-            {% endfor %}
-        </div>
-        <div class="border shadow-md p-5 rounded-md w-full mx-auto">
-            {% for doctor in doctors %}
-            <div>
-                <h2 class="text-normal text-gray-800">{{ doctor.full_name }}</h2>
-            </div>
-            {% endfor %}
-        </div>
-    </div>
+
 {%endblock %}

@@ -6,7 +6,7 @@
 
   <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
     {% for service in services %}
-    {% set safe_name = service.name.replace('/', '_').replace(' ', '_') %}
+    {% set safe_name = service.name.replace(' ', '-').replace('/', '-').replace('&', 'and') %}
 
     <div class="relative group rounded-xl overflow-hidden shadow-md h-64 bg-white cursor-pointer">
 

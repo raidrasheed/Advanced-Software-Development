@@ -29,6 +29,8 @@ from models.room import Room
 
 # App and templates setup
 
+
+
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
@@ -37,8 +39,6 @@ app.add_middleware(SessionMiddleware, secret_key="your_super_secret_key")
 # templates = Jinja2Templates(directory="templates")
 
 templates = Jinja2Templates(directory="templates")
-
-
 
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
