@@ -20,29 +20,18 @@
               <p class="text-xs text-gray-500 capitalize">{{user.role}}</p>
             </div>
   
-            <nav class="flex-1 px-4 py-4 space-y-1">
-                <button
-                  class="flex items-center w-full px-4 py-2 text-sm font-medium text-gray-600 rounded-lg hover:bg-gray-50"
-                >
-                  <a href="/">Home</a>
-                </button>
-                <button
-                  class="flex items-center w-full px-4 py-2 text-sm font-medium text-gray-600 rounded-lg hover:bg-gray-50"
-                >
-                  <a href="/doctors">Doctors</a>
-                </button>
-                <button
-                  class="flex items-center w-full px-4 py-2 text-sm font-medium text-gray-600 rounded-lg hover:bg-gray-50"
-                >
-                  <a href="/appointments">Appointments</a>
-                </button>
+            <nav class="flex flex-col gap-2 px-4 py-4">
+                  <a href="/admin" class="text-sm p-2 font-medium text-gray-600 rounded-lg hover:bg-gray-200">Home</a>
+                  <a href="/admin/doctors" class="text-sm p-2 font-medium text-gray-600 rounded-lg hover:bg-gray-200">Doctors</a>
+                  <a href="/admin/appointments" class="text-sm p-2 font-medium text-gray-600 rounded-lg hover:bg-gray-200">Appointments</a>
+                  <a href="/admin/rooms" class="text-sm p-2 font-medium text-gray-600 rounded-lg hover:bg-gray-200">Rooms</a>
             </nav>
   
             <div class="px-4 py-4 border-t">
               <button
                 class="flex items-center w-full px-4 py-2 text-sm font-medium text-red-600 rounded-lg hover:bg-red-50"
               >
-                <a href="/logout">Logout</a>
+                <a href="/admin/logout">Logout</a>
               </button>
             </div>
           </div>

@@ -23,6 +23,7 @@ from models.clinics import Clinic
 from models.schedule import Schedule
 from models.appointments import Appointment
 from models.pricing import Pricing
+from models.room import Room
 
 
 
@@ -221,24 +222,6 @@ def login_post(request: Request, email: str = Form(...), password: str = Form(..
     }
     return RedirectResponse("/dashboard", status_code=status.HTTP_302_FOUND)
 
-@app.get("/dashboard")
-def dashboard(request: Request):
-    user = request.session.get("user") 
-    print(user)
-    # if user and user['role'] == 'CUSTOMER':
-    #     return RedirectResponse("/")
-    # if not user:
-    #     return RedirectResponse("/login")
-    return render_template(request, "dashboard.html", {"request": request, "user": user})
-
-@app.get("/doctors")
-def doctors(request: Request, db: Session = Depends(get_db)):
-    user = request.session.get("user") 
-    doctors = db.query(Doctor).all()
-    clinics = db.query(Clinic).all()
-    if not user:
-        return RedirectResponse("/login")
-    return render_template(request, "doctors.html", {"request": request, "user": user, "doctors": doctors, "clinics": clinics})
 
 @app.get('/api/clinics')
 def get_clinics(request: Request, db: Session = Depends(get_db)):
@@ -361,38 +344,6 @@ async def book_appointment(request: Request, db: Session = Depends(get_db)):
     })
 
 
-@app.get("/appointments")
-def appointments(request: Request, db: Session = Depends(get_db)):
-    user = request.session.get("user")
-
-    if not user:
-        return RedirectResponse("/login")
-    
-    if user and user['role'] == 'CUSTOMER':
-        appointments = db.query(Appointment).filter(
-        Appointment.patient_id == user.get("id")
-    ).all()
-    elif user and user['role'] == 'ADMIN':
-        appointments = db.query(Appointment).all()
-    
-    
-    return render_template(request, "appointments.html", {"request": request, "user": user, "appointments": appointments})    
-
-@app.post("/api/appointments/{appointment_id}")
-async def confirm_appointment(appointment_id: int, request: Request, db: Session = Depends(get_db)):
-    data = await request.json()
-    status = data.get("status")
-    if not status:
-        return JSONResponse({"error": "Status is required"}, status_code=status.HTTP_400_BAD_REQUEST)
-        
-    appointment = db.query(Appointment).filter(Appointment.id == appointment_id).first()
-    if not appointment:
-        return JSONResponse({"error": "Appointment not found"}, status_code=status.HTTP_404_NOT_FOUND)
-        
-    appointment.status = status
-    db.commit()
-    return JSONResponse({"message": "Appointment status updated successfully"})
-
 
 @app.get("/api/appointments/{appointment_id}")
 async def get_appointment(appointment_id: int, request: Request, db: Session = Depends(get_db)):
@@ -477,3 +428,75 @@ async def delete_doctor(doctor_id: int, request: Request, db: Session = Depends(
     db.delete(doctor)
     db.commit()
     return JSONResponse({"message": "Doctor deleted successfully"})
+
+
+@app.get("/about-us")
+def about(request: Request):
+    return render_template(request, "aboutus.html", {"request": request})
+
+### ALL ADMIN ROUTES
+
+@app.get("/admin")
+def dashboard(request: Request):
+    user = request.session.get("user") 
+    print(user)
+    # if user and user['role'] == 'CUSTOMER':
+    #     return RedirectResponse("/")
+    # if not user:
+    #     return RedirectResponse("/login")
+    return render_template(request, "admin/dashboard.html", {"request": request, "user": user})
+
+@app.get("/admin/doctors")
+def doctors(request: Request, db: Session = Depends(get_db)):
+    user = request.session.get("user") 
+    doctors = db.query(Doctor).all()
+    clinics = db.query(Clinic).all()
+    if not user:
+        return RedirectResponse("/login")
+    return render_template(request, "admin/doctors.html", {"request": request, "user": user, "doctors": doctors, "clinics": clinics})
+
+
+@app.get("/admin/appointments")
+def appointments(request: Request, db: Session = Depends(get_db)):
+    user = request.session.get("user")
+
+    if not user:
+        return RedirectResponse("/login")
+    
+    if user and user['role'] == 'CUSTOMER':
+        appointments = db.query(Appointment).filter(
+        Appointment.patient_id == user.get("id")
+    ).all()
+    elif user and user['role'] == 'ADMIN':
+        appointments = db.query(Appointment).all()
+    
+    
+    return render_template(request, "admin/appointments.html", {"request": request, "user": user, "appointments": appointments})    
+
+@app.get("/admin/rooms")
+def rooms(request: Request, db: Session = Depends(get_db)):
+    user = request.session.get("user")
+    if not user:
+        return RedirectResponse("/login")
+    # Query rooms and join with clinics to group by clinic
+    clinics_with_rooms = db.query(Clinic).join(Clinic.rooms).all()
+
+    return render_template(request, "admin/rooms.html", {"request": request, "user": user, "clinics": clinics_with_rooms})
+
+
+### API ROUTES
+@app.post("/api/appointments/{appointment_id}")
+async def confirm_appointment(appointment_id: int, request: Request, db: Session = Depends(get_db)):
+    data = await request.json()
+    status = data.get("status")
+    if not status:
+        return JSONResponse({"error": "Status is required"}, status_code=status.HTTP_400_BAD_REQUEST)
+        
+    appointment = db.query(Appointment).filter(Appointment.id == appointment_id).first()
+    if not appointment:
+        return JSONResponse({"error": "Appointment not found"}, status_code=status.HTTP_404_NOT_FOUND)
+        
+    appointment.status = status
+    db.commit()
+    return JSONResponse({"message": "Appointment status updated successfully"})
+

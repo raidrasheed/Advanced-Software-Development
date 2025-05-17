@@ -29,6 +29,11 @@
                     <a href="/register" class="hover:underline">Register</a>
                 </div>
                 {% endif %}
+                {% if user and user.role != "customer" %}
+                <div>
+                    <a href="/admin" class="hover:underline text-blue-600 font-semibold">Admin</a>
+                </div>
+                {% endif %}
                 <div>
                     <!-- Current Location -->
                      <button class="" id="location-button" onclick="showLocationModal()">
