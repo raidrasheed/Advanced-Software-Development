@@ -8,10 +8,12 @@
     <script src="/static/js/utils.js"></script>
 </head>
 <body class="bg-gray-50">
-    <div class="min-h-screen  max-w-7xl mx-auto space-y-2">
+    <div class="min-h-screen max-w-7xl mx-auto space-y-2">
         <div class="flex items-center justify-between">
             <div>
-                <img src="/static/images/logo.png" alt="Logo" width="80">
+                <a href="/">
+                    <img src="/static/images/logo.png" alt="Logo" width="80">
+                </a>
             </div>
             <div class="text-center mt-4">
                 <h1 class="text-5xl font-semibold text-gray-900 tracking-wide">
@@ -19,7 +21,7 @@
                 </h1>
                 <p class="text-md text-gray-500 mt-2">Caring for your smile across the Maldives</p>
             </div>
-                            <div class="flex justify-center gap-2 items-center">
+            <div class="flex justify-center gap-2 items-center">
                 {% if user %}
                 <div>
                     <a href="/logout" class="hover:underline">Logout</a>
@@ -38,64 +40,72 @@
                 </div>
                 {% endif %}
                 <div>
-                    <!-- Current Location -->
-                     <button class="" id="location-button" onclick="showLocationModal()">
+                    <button class="" id="location-button" onclick="showLocationModal()">
                         {% if user %}
                             Change {{ user.get("location") }} 
                         {% else %}
                             Choose Location
                         {% endif %}
-                     </button>
+                    </button>
                 </div>
             </div>
         </div>
         <div class="border shadow-md p-5 rounded-md">
-        <div class="space-x-5 relative flex items-center text-gray-700">
-
-            <!-- Doctors -->
-            <div class="relative group">
-            <a href="/"
-                class="{% if request.url.path == '/' %}text-blue-600 font-semibold{% else %}hover:underline{% endif %}">
-                Home
-            </a>
+            <div class="space-x-5 relative flex items-center text-gray-700">
+                <div class="relative group">
+                    <a href="/" class="{% if request.url.path == '/' %}text-blue-600 font-semibold{% else %}hover:underline{% endif %}">Home</a>
+                </div>
+                <div class="relative group">
+                    <a href="/find-a-doctor" class="{% if request.url.path == '/find-a-doctor' %}text-blue-600 font-semibold{% else %}hover:underline{% endif %}">Doctors</a>
+                </div>
+                <a href="/services" class="{% if request.url.path == '/services' %}text-blue-600 font-semibold{% else %}hover:underline{% endif %}">Services</a>
+                <a href="/about-us" class="{% if request.url.path == '/about-us' %}text-blue-600 font-semibold{% else %}hover:underline{% endif %}">About Us</a>
             </div>
-            <!-- Doctors -->
-            <div class="relative group">
-            <a href="/find-a-doctor"
-                class="{% if request.url.path == '/find-a-doctor' %}text-blue-600 font-semibold{% else %}hover:underline{% endif %}">
-                Doctors
-            </a>
-            </div>
-
-            <!-- Services -->
-            <a href="/services"
-            class="{% if request.url.path == '/services' %}text-blue-600 font-semibold{% else %}hover:underline{% endif %}">
-            Services
-            </a>
-
-            <!-- About Us -->
-            <a href="/about-us"
-            class="{% if request.url.path == '/about-us' %}text-blue-600 font-semibold{% else %}hover:underline{% endif %}">
-            About Us
-            </a>
-
-        </div>
         </div>
         <div class="w-full">
-          {% block content %}{% endblock %}
-          <div id="location-modal" class="hidden fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center z-50 bg-white rounded-lg shadow-lg">
-            <div class="bg-white p-6 rounded-lg shadow-lg w-96">
-                <h2 class="text-lg font-bold mb-4">Choose Your Location</h2>
-                <ul class="space-y-2" id="clinic-list">
-                </ul>
-                <button id="close-modal" class="mt-4 bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">
-                    Close
-                </button>
+            {% block content %}{% endblock %}
+            <div id="location-modal" class="hidden fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center z-50 bg-white rounded-lg shadow-lg">
+                <div class="bg-white p-6 rounded-lg shadow-lg w-96">
+                    <h2 class="text-lg font-bold mb-4">Choose Your Location</h2>
+                    <ul class="space-y-2" id="clinic-list"></ul>
+                    <button id="close-modal" class="mt-4 bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">
+                        Close
+                    </button>
+                </div>
             </div>
-          </div>
         </div>
-  </div>
-  {% block scripts %}{% endblock %}
+    </div>
+    <!-- Global Footer -->
+    <footer class="bg-gray-900 text-gray-100 pt-12 pb-6">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <div>
+                    <h4 class="text-lg font-bold mb-2">Island Dental Cline Service</h4>
+                    <p class="text-sm text-gray-400">
+                        Caring for smiles across the Maldives with modern dental care and a compassionate team.
+                    </p>
+                </div>
+                <div>
+                    <h4 class="text-lg font-bold mb-2">Quick Links</h4>
+                    <ul class="text-sm space-y-2 text-gray-300">
+                        <li><a href="/" class="hover:text-white">Home</a></li>
+                        <li><a href="/about-us" class="hover:text-white">About</a></li>
+                        <li><a href="/services" class="hover:text-white">Services</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="text-lg font-bold mb-2">Contact</h4>
+                    <p class="text-sm text-gray-400">📞 +960 7875786</p>
+                    <p class="text-sm text-gray-400">📧 info@islanddental.mv</p>
+                </div>
+            </div>
+            <div class="mt-10 text-center text-sm text-gray-500 border-t border-gray-800 pt-6">
+                &copy; 2025 Island Dental Cline Service. All rights reserved.
+            </div>
+        </div>
+    </footer>
+
+    {% block scripts %}{% endblock %}
 </body>
 </html>
 
@@ -103,38 +113,35 @@
     document.addEventListener('DOMContentLoaded', function () {
         const toggleButton = document.getElementById('doctor-toggle');
         const doctorList = document.getElementById('doctor-list');
-        // location modal 
         const locationModal = document.getElementById('location-modal');
         const closeModalButton = document.getElementById('close-modal');
         const locationButton = document.getElementById('location-button');
 
-        // Toggle visibility
-
-        if(toggleButton){
+        if (toggleButton) {
             toggleButton.addEventListener('mouseover', function (e) {
                 e.stopPropagation();
                 doctorList.classList.toggle('hidden');
             });
         }
 
-        // Hide dropdown when clicking outside
-        if(doctorList){
-        document.addEventListener('click', function (e) {
-            if (!doctorList.contains(e.target) && !toggleButton.contains(e.target)) {
-                doctorList.classList.add('hidden');
-            }
-        });
+        if (doctorList) {
+            document.addEventListener('click', function (e) {
+                if (!doctorList.contains(e.target) && !toggleButton.contains(e.target)) {
+                    doctorList.classList.add('hidden');
+                }
+            });
         }
 
         showLocationModal = function () {
             locationModal.classList.remove('hidden');
         }
+
         closeModalButton.addEventListener('click', function () {
             locationModal.classList.add('hidden');
         });
 
         selectClinic = function (locations) {
-            const {clinic_id, location} = locations
+            const { clinic_id, location } = locations;
             locationModal.classList.add('hidden');
             fetch('/api/setlocation', {
                 method: 'POST',
@@ -151,8 +158,6 @@
             .catch(error => console.error('Error:', error));
         }
 
-        // get clinics 
-
         fetch('/api/clinics')
             .then(response => response.json())
             .then(data => {
@@ -161,8 +166,7 @@
                     const listItem = document.createElement('li');
                     listItem.textContent = clinic.name;
                     listItem.id = clinic.id;
-                    listItem.classList.add('hover:underline');
-                    listItem.classList.add('cursor-pointer');
+                    listItem.classList.add('hover:underline', 'cursor-pointer');
                     listItem.addEventListener('click', (clinic) => selectClinic({
                         clinic_id: clinic.target.id,
                         location: clinic.target.textContent
@@ -171,8 +175,5 @@
                 });
             })
             .catch(error => console.error('Error fetching clinics:', error));
-    // Close the modal when clicking outside of it
-    
-
     });
 </script>
