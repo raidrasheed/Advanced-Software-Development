@@ -220,7 +220,10 @@ def login_post(request: Request, email: str = Form(...), password: str = Form(..
         'clinic_id': 1,
         'location': "Male CIty"
     }
-    return RedirectResponse("/dashboard", status_code=status.HTTP_302_FOUND)
+    if user.role == "CUSTOMER":
+        return RedirectResponse("/", status_code=status.HTTP_302_FOUND)
+    else:
+        return RedirectResponse("/admin", status_code=status.HTTP_302_FOUND)
 
 
 @app.get('/api/clinics')
@@ -439,7 +442,6 @@ def about(request: Request):
 @app.get("/admin")
 def dashboard(request: Request):
     user = request.session.get("user") 
-    print(user)
     # if user and user['role'] == 'CUSTOMER':
     #     return RedirectResponse("/")
     # if not user:
