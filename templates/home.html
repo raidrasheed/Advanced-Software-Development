@@ -1,7 +1,125 @@
 {% extends "general.html" %}
-<h1>Home Page</h1>
-
 
 {% block content %}
 
-{%endblock %}
+<!-- Hero Section -->
+<section class="bg-blue-50 py-20">
+  <div class="max-w-7xl mx-auto px-4 text-center">
+    <h1 class="text-4xl md:text-5xl font-bold text-blue-800">Your Smile, Our Priority</h1>
+    <p class="mt-4 text-lg text-gray-600">Modern dental care across the Maldives with trusted professionals.</p>
+    <div class="mt-6 space-x-4">
+      <a href="/find-a-doctor" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">Book Appointment</a>
+      <a href="/services" class="border border-blue-600 text-blue-600 px-6 py-2 rounded-lg hover:bg-blue-100">View Services</a>
+    </div>
+  </div>
+</section>
+
+<!-- Quick Info Cards -->
+<section class="py-12">
+  <div class="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-6 px-4">
+    <div class="bg-white shadow rounded-lg p-4 text-center">
+      <h3 class="font-semibold text-lg">Operating Hours</h3>
+      <p class="text-sm text-gray-500">Sat–Thu</p>
+    </div>
+    <div class="bg-white shadow rounded-lg p-4 text-center">
+      <h3 class="font-semibold text-lg">Our Locations</h3>
+      <p class="text-sm text-gray-500">Male' City <br> Addu City <br> Kulhudhufushi</p>
+    </div>
+    <div class="bg-white shadow rounded-lg p-4 text-center">
+      <h3 class="font-semibold text-lg">Contact Us</h3>
+      <p class="text-sm text-gray-500">+960 7875786</p>
+    </div>
+    <div class="bg-white shadow rounded-lg p-4 text-center">
+      <h3 class="font-semibold text-lg">Our Dentists</h3>
+      <p class="text-sm text-gray-500">Experienced & Certified</p>
+    </div>
+  </div>
+</section>
+
+<!-- About Section -->
+<section class="bg-gray-50 py-16" id="about">
+  <div class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-10 px-4">
+    <div>
+      <h2 class="text-3xl font-bold mb-4">Trusted Dental Care Since 2010</h2>
+      <p class="text-gray-600 mb-4">At Island Dental Cline Service, we strive to provide compassionate, personalized dental services using modern technology in a clean and safe environment. From regular checkups to complex procedures, we are here to care for your oral health journey.</p>
+    </div>
+  </div>
+</section>
+
+<!-- Services Section -->
+<section class="py-16 bg-white" id="services">
+  <div class="max-w-7xl mx-auto px-4 text-center">
+    <h2 class="text-3xl font-bold mb-8">Our Services</h2>
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div class="p-6 bg-blue-50 rounded-lg shadow">
+        <h3 class="font-semibold text-xl mb-2">Preventive Care</h3>
+        <p class="text-sm text-gray-600">Cleanings, exams, hygiene education, and more.</p>
+      </div>
+      <div class="p-6 bg-blue-50 rounded-lg shadow">
+        <h3 class="font-semibold text-xl mb-2">Basic Restorative</h3>
+        <p class="text-sm text-gray-600">Fillings, root canal treatments, crowns & more.</p>
+      </div>
+      <div class="p-6 bg-blue-50 rounded-lg shadow">
+        <h3 class="font-semibold text-xl mb-2">Cosmetic Dentistry</h3>
+        <p class="text-sm text-gray-600">Whitening, veneers, dentures, and more.</p>
+      </div>
+      <div class="p-6 bg-blue-50 rounded-lg shadow">
+        <h3 class="font-semibold text-xl mb-2">Specialty Services</h3>
+        <p class="text-sm text-gray-600">Extractions, full mouth rehab, and more.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Testimonials -->
+<section class="bg-gray-50 py-16">
+  <div class="max-w-4xl mx-auto px-4 text-center">
+    <h2 class="text-3xl font-bold mb-6">What Our Patients Say</h2>
+    <div class="space-y-8">
+      <div class="bg-white p-6 rounded-lg shadow">
+        <p class="text-gray-600 italic">“Fantastic service and the friendliest staff! Highly recommend.”</p>
+        <p class="mt-2 text-sm font-semibold">– Aishath F., Malé</p>
+      </div>
+      <div class="bg-white p-6 rounded-lg shadow">
+        <p class="text-gray-600 italic">“Professional care and attention to detail, truly felt cared for.”</p>
+        <p class="mt-2 text-sm font-semibold">– Mohamed R., Hulhumalé</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Call to Action -->
+<section class="bg-blue-600 text-white py-16 text-center">
+  <h2 class="text-3xl font-bold mb-4">Ready for Your Next Dental Visit?</h2>
+  <a href="/find-a-doctor" class="bg-white text-blue-600 px-6 py-3 rounded-lg font-semibold hover:bg-gray-100">Schedule Now</a>
+</section>
+
+<!-- Footer -->
+<footer class="bg-gray-900 text-gray-100 pt-12 pb-6">
+  <div class="max-w-7xl mx-auto px-4">
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+      <div>
+        <h4 class="text-lg font-bold mb-2">Island Dental Cline Service</h4>
+        <p class="text-sm text-gray-400">Caring for smiles across the Maldives with modern dental care and a compassionate team.</p>
+      </div>
+      <div>
+        <h4 class="text-lg font-bold mb-2">Quick Links</h4>
+        <ul class="text-sm space-y-2 text-gray-300">
+          <li><a href="#" class="hover:text-white">Home</a></li>
+          <li><a href="/about-us" class="hover:text-white">About</a></li>
+          <li><a href="/services" class="hover:text-white">Services</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4 class="text-lg font-bold mb-2">Contact</h4>
+        <p class="text-sm text-gray-400">📞 +960 7875786</p>
+        <p class="text-sm text-gray-400">📧 info@islanddental.mv</p>
+      </div>
+    </div>
+    <div class="mt-10 text-center text-sm text-gray-500 border-t border-gray-800 pt-6">
+      &copy; 2025 Island Dental Cline Service. All rights reserved.
+    </div>
+  </div>
+</footer>
+
+{% endblock %}

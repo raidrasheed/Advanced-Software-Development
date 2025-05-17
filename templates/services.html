@@ -6,9 +6,9 @@
 
   <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
     {% for service in services %}
-    {% set safe_name = service.name.replace(' ', '-').replace('/', '-').replace('&', 'and') %}
+    {% set safe_name = service.name.replace('/', '-').replace(' ', '-') %}
 
-    <div class="relative group rounded-xl overflow-hidden shadow-md h-64 bg-white cursor-pointer">
+    <div class="relative group rounded-xl overflow-hidden shadow-md h-65 bg-white cursor-pointer">
 
       <img
         src="/static/images/{{ safe_name }}.png"

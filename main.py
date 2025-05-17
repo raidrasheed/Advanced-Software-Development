@@ -234,7 +234,7 @@ def get_clinics(request: Request, db: Session = Depends(get_db)):
 @app.get("/logout")
 def logout(request: Request):
     request.session.clear()
-    return RedirectResponse("/login")
+    return RedirectResponse("/")
 
 @app.get("/check-pricing")
 def check_pricing(request: Request, db: Session = Depends(get_db)):
