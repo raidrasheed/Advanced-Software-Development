@@ -1,0 +1,29 @@
+{% extends "general.html" %}
+
+{% block content %}
+<div class="container mx-auto py-10">
+  <h1 class="text-4xl font-bold text-center text-gray-800 mb-10">Services</h1>
+
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
+    {% for service in services %}
+    {% set safe_name = service.name.replace('/', '_').replace(' ', '_') %}
+
+    <div class="relative group rounded-xl overflow-hidden shadow-md h-64 bg-white cursor-pointer">
+
+      <img
+        src="/static/images/{{ safe_name }}.png"
+        alt="{{ service.name }}"
+        class="w-full h-full object-cover transition duration-300 group-hover:blur-sm group-hover:scale-105"
+        onerror="this.onerror=null;this.src='/static/images/default.png';"
+      >
+      
+      <div class="absolute inset-0 flex flex-col justify-center items-center bg-black bg-opacity-60 opacity-0 group-hover:opacity-100 transition duration-300 text-white px-4 text-center">
+        <h2 class="text-xl font-bold mb-2">{{ service.name }}</h2>
+        <p class="text-sm">{{ service.description }}</p>
+      </div>
+
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

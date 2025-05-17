@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}Island Dental Cline Service{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="/static/build/styles.css" rel="stylesheet">
+</head>
+<body>
+    <div class="min-h-screen bg-gray-50">
+        <div class="fixed inset-y-0 left-0 w-64 bg-white shadow-lg">
+          <div class="flex flex-col h-full">
+            <div class="px-6 py-4 border-b">
+              <h2 class="text-xl font-bold text-gray-800">Island Dental Cline Service</h2>
+            </div>
+            
+            <div class="px-6 py-4 border-b">
+              <p class="text-sm font-medium text-gray-600">Welcome,</p>
+              <p class="text-sm font-bold text-gray-800">{{user.full_name}}</p>
+              <p class="text-xs text-gray-500 capitalize">{{user.role}}</p>
+            </div>
+  
+            <nav class="flex-1 px-4 py-4 space-y-1">
+                <button
+                  class="flex items-center w-full px-4 py-2 text-sm font-medium text-gray-600 rounded-lg hover:bg-gray-50"
+                >
+                  <a href="/">Home</a>
+                </button>
+                <button
+                  class="flex items-center w-full px-4 py-2 text-sm font-medium text-gray-600 rounded-lg hover:bg-gray-50"
+                >
+                  <a href="/doctors">Doctors</a>
+                </button>
+                <button
+                  class="flex items-center w-full px-4 py-2 text-sm font-medium text-gray-600 rounded-lg hover:bg-gray-50"
+                >
+                  <a href="/appointments">Appointments</a>
+                </button>
+            </nav>
+  
+            <div class="px-4 py-4 border-t">
+              <button
+                class="flex items-center w-full px-4 py-2 text-sm font-medium text-red-600 rounded-lg hover:bg-red-50"
+              >
+                <a href="/logout">Logout</a>
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="ml-64 p-8">
+          {% block content %}{% endblock %}
+        </div>
+  </div>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

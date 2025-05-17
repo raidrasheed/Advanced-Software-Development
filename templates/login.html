@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}FastAPI App{% endblock %}</title>
+    <link href="/static/build/styles.css" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body>
+<div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-blue-100">
+    <div class="bg-white p-8 rounded-lg shadow-lg w-96">
+        <h2 class="text-2xl font-bold text-center text-gray-800 mb-8">Login</h2>
+        <form method="post" class="space-y-6">
+            <div>
+                <input 
+                    type="text" 
+                    name="email" 
+                    placeholder="email" 
+                    required
+                    class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200"
+                >
+            </div>
+            <div>
+                <input 
+                    type="password" 
+                    name="password" 
+                    placeholder="Password" 
+                    required
+                    class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200"
+                >
+            </div>
+            <button 
+                type="submit"
+                class="w-full bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600 transition duration-200"
+            >
+                Login
+            </button>
+        </form>
+        <p class="text-red-500 text-center mt-4">{{ error if error }}</p>
+    </div>
+</div>
+</body>
+</html>

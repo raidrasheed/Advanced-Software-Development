@@ -1,0 +1,386 @@
+{% extends "general.html" %}
+
+{% block title %}Doctor Detail{% endblock %}
+
+{% block content %}
+    <div class="flex flex-row">
+        <div class="w-2/3">
+            <div class="p-2">
+                <h1 class="text-2xl font-bold text-gray-800 mb-4">{{ doctor.full_name }}</h1>
+                <p class="text-gray-600 mb-4">Specialty: {{ doctor.speciality }}</p>
+                <p class="text-gray-600 mb-4">Experience: {{ doctor.experience }}</p>
+                <div class="text-gray-600 mb-4">{{ doctor.description }}</div>
+                <h2 class="text-xl font-bold text-gray-800 mb-4">Available Slots</h2>
+                <ul class="list-disc list-inside">
+                    {% for slot in schedules %}
+                        <li class="text-gray-600 mb-2">{{ slot.date }} - {{ slot.time_slot }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+        <div class="w-1/3">
+            <div id="calendar" class="bg-white rounded-lg shadow-md p-4 ">
+                <div class="flex justify-between items-center mb-4">
+                    <button id="prevMonth" class="bg-gray-300 p-2 rounded hover:bg-gray-400">&lt;</button>
+                    <h3 id="currentMonth" class="text-lg font-bold">April 2025</h3>
+                    <button id="nextMonth" class="bg-gray-300 p-2 rounded hover:bg-gray-400">&gt;</button>
+                </div>
+                <div class="grid grid-cols-7 gap-2 text-center">
+                    <div class="font-bold">Sun</div>
+                    <div class="font-bold">Mon</div>
+                    <div class="font-bold">Tue</div>
+                    <div class="font-bold">Wed</div>
+                    <div class="font-bold">Thu</div>
+                    <div class="font-bold">Fri</div>
+                    <div class="font-bold">Sat</div>
+                    <!-- Calendar days will be dynamically inserted here -->
+                </div>
+            </div>
+            <div id="time_slots">
+                <h2 class="text-xl font-bold text-gray-800 py-4">Available Time Slots</h2>
+                <div id="renderSlots" class="grid grid-cols-3 gap-2"></div>
+                <div id="slotErrors"></div>
+            </div>
+        </div>
+
+        {% if user %}
+        <div id="modal" class="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center hidden">
+            <!-- Modal Box -->
+            <div class="bg-white  rounded-lg shadow-lg overflow-hidden">
+                <div class="p-4 border-b font-semibold text-lg">
+                    <h2 class="text-xl font-bold text-gray-800">Select Service</h2>
+                </div>
+                <div class="p-4">
+                    <form id="serviceForm" action="" method="POST" class="max-w-md mx-auto bg-white p-6 space-y-6">
+                        <!-- Step 1: Select Service Type -->
+                        <div id="step1" class="step">
+                            <label for="service_type" class="block text-sm font-medium text-gray-700 mb-1">Select Service Type</label>
+                            <select id="service_type" onchange="setService(this.id)" name="service_type" class="w-full border rounded p-2">
+                                {% for service in services %}
+                                    <option value="{{ service.id }}">{{ service.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <!-- Step 2: Confirm Details -->
+                        <div id="step2" class="step hidden">
+                            <p class="text-gray-700">Please confirm your selection:</p>
+                            <ul class="list-inside text-gray-600">
+                                <li><strong>Service:</strong> <span id="confirm_service"></span></li>
+                                <li><strong>Date:</strong> <span id="confirm_date"></span></li>
+                                <li><strong>Price:</strong> <span id="confirm_price"></span></li>
+                                <li><strong>Name:</strong> <span id="confirm_patient_name">{{ user.full_name }}</span></li>
+                                <li><strong>Email:</strong> <span id="confirm_patient_email">{{ user.email }}</span></li>
+                                <li><strong>Phone:</strong> <span id="confirm_patient_phone">{{ user.contact }}</span></li>
+                                <li><strong>Identifier:</strong> <span id="confirm_patient_identifier">{{ user.identifier }}</span></li>
+                            </ul>
+                        </div>
+                    </form>
+                </div>
+                <div class="p-4 border-t text-right">
+                    <button id="prevButton" class="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400 hidden">Previous</button>
+                    <button id="nextButton" onclick="nextStep()" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Next</button>
+                    <button id="submitButton" onclick="submitForm()" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 hidden">Confirm</button>
+                    <button onclick="closeModal()" class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">Close</button>
+                </div>
+            </div>
+        </div>
+
+        {% endif %}
+    </div>
+{% endblock %}
+
+{% block scripts %}
+
+<script>
+    const doctor_id = {{ doctor.id }};
+
+    let service = null;
+    function setService(value) {
+        service = value;
+    }
+
+    const calendar = document.getElementById('calendar');
+    const currentMonth = document.getElementById('currentMonth');
+    const prevMonth = document.getElementById('prevMonth');
+    const nextMonth = document.getElementById('nextMonth');
+    const renderSlots = document.getElementById('renderSlots');
+    const slotErrors = document.getElementById('slotErrors');
+    const confirm_date = document.getElementById('confirm_date');
+    let selectedDate = null;
+    let selectedTimeSlot = null;
+    let setprice = null;
+
+    let date = new Date();
+
+    async function checkSchedule(doctor_id, date) {
+        const data = await fetch(`/check-schedule/${doctor_id}?date=${date}`);
+
+        if(!data.ok) {
+            throw new Error('Network response was not ok');
+        }
+        const response = await data.json();
+        if(response.status === 'error') {
+            slotErrors.innerHTML = `<div class="text-red-500">${response.message}</div>`;
+            return;
+        }
+
+        return response;
+    }
+
+    async function renderCalendar() {
+        const year = date.getFullYear();
+        const month = date.getMonth();
+        const firstDay = new Date(year, month, 1).getDay();
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+        currentMonth.textContent = date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+
+        const grid = calendar.querySelector('.grid');
+        grid.innerHTML = '';
+
+        for (let i = 0; i < firstDay; i++) {
+            const emptyCell = document.createElement('div');
+            grid.appendChild(emptyCell);
+        }
+
+        for (let day = 1; day <= daysInMonth; day++) {
+            const dayCell = document.createElement('div');
+            dayCell.textContent = day;
+            dayCell.className = 'p-2 rounded hover:bg-gray-200';
+            grid.appendChild(dayCell);
+
+            if(day === date.getDate() && month === new Date().getMonth() && year === new Date().getFullYear()) {
+                dayCell.classList.add('bg-blue-200');
+            }
+            if(day < date.getDate() && month === new Date().getMonth() && year === new Date().getFullYear()) {
+                dayCell.classList.add('bg-gray-50');
+                dayCell.classList.add('disabled');
+                dayCell.classList.add('text-gray-200');
+            }
+
+            // on click a date
+
+            /// auto click current date 
+            if(day === new Date().getDate() && month === new Date().getMonth() && year === new Date().getFullYear()) {
+                await getCalandarDate(day);
+            }
+
+            dayCell.addEventListener('click', async () => {
+                // high light this date
+                const allDays = grid.querySelectorAll('div');
+                allDays.forEach((d) => {
+                    d.classList.remove('bg-slate-200');
+                });
+                dayCell.classList.add('bg-slate-200');
+                await getCalandarDate(day);
+            });
+        }
+    }
+
+    async function getCalandarDate(day) {
+        const year = date.getFullYear();
+        const month = date.getMonth();
+        
+        slotErrors.innerHTML = '';
+        renderSlots.innerHTML = '';
+        const blockedTimes = [];
+
+        const selectedDateObj = new Date(year, month, day);
+        const formattedDate = selectedDateObj.toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' });
+
+        const sDay = selectedDateObj.getDate();
+        const sMonth = selectedDateObj.getMonth() + 1; // Months are zero-based
+        const sYear = selectedDateObj.getFullYear();
+
+        const sqlFormated = `${sYear}-${sMonth}-${sDay}`;
+
+        const schedules = await checkSchedule(doctor_id, sqlFormated);
+
+
+        if (schedules === null) {
+            slotErrors.innerHTML = `<div class="text-red-500">No available slots for this date</div>`;
+            return;
+        }
+
+        let start_time = 0;
+        let end_time = 0;
+
+        const appointments = schedules.appointments;// getting all appointments of the selected date ..
+
+        if(schedules?.time_slot === 'MORNING') {
+            start_time = 8;
+            end_time = 12;
+        } else if(schedules?.time_slot === 'AFTERNOON') {
+            start_time = 13;
+            end_time = 17;
+        } else if(schedules?.time_slot === 'EVENING') {
+            start_time = 18;
+            end_time = 22;
+        } else {
+            slotErrors.innerHTML = `<div class="text-red-500">No available slots for this date</div>`;
+            return;
+        }
+        // lets block appointment confirmed times ..
+
+        for (let i = 0; i < appointments.length; i++) {
+            const appointment = appointments[i];
+
+            blockedTimes.push(appointment?.time);
+        }
+
+        // devide divs with 20 minutes each
+        renderSlots.innerHTML = '';
+        for (let hour = start_time; hour < end_time; hour++) {
+            for (let minute = 0; minute < 60; minute += 20) {
+                const timeObj = new Date(year, month, day, hour, minute);
+                const formattedTime = timeObj.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' , hour12: false });
+                const timeSlot = document.createElement('div');
+
+
+                const blocked = blockedTimes.find((time) => time === formattedTime);
+
+                if(blocked) {
+                    timeSlot.classList.add('bg-gray-200');
+                    timeSlot.classList.add('text-gray-400');
+                } else {
+                    timeSlot.classList.add('bg-green-200');
+                    timeSlot.classList.add('text-gray-600');
+                    timeSlot.addEventListener('click', function() {
+                        modal.classList.remove('hidden');
+                        if(confirm_date) {
+                            confirm_date.textContent = formattedTime;
+                            selectedDate = formattedDate;
+                            selectedTimeSlot = formattedTime;
+                        }
+                    });
+                }   
+
+                timeSlot.innerHTML = `<div class="text-gray-600 border rounded-md p-2">${formattedTime}</div>`;
+                renderSlots.append(timeSlot);
+            }
+        }
+    }
+
+    prevMonth.addEventListener('click', () => {
+        date.setMonth(date.getMonth() - 1);
+        renderCalendar();
+    });
+
+    nextMonth.addEventListener('click', () => {
+        date.setMonth(date.getMonth() + 1);
+        renderCalendar();
+    });
+
+    function closeModal() {
+        modal.classList.add('hidden');
+        currentStep = 0;
+        setprice = null;
+        selectedDate = null;
+        selectedTimeSlot = null;
+        showStep(currentStep);  
+
+        document.getElementById('nextButton').classList.remove('hidden');
+        document.getElementById('submitButton').classList.add('hidden');
+    }
+
+    renderCalendar();
+
+    const steps = document.querySelectorAll('.step');
+    const nextButton = document.getElementById('nextButton');
+    const prevButton = document.getElementById('prevButton');
+    const submitButton = document.getElementById('submitButton');
+    const confirmService = document.getElementById('confirm_service');
+    let currentStep = 0;
+
+    function showStep(stepIndex) {
+        steps.forEach((step, index) => {
+            step.classList.toggle('hidden', index !== stepIndex);
+        });
+        // prevButton.classList.toggle('hidden', stepIndex === 0);
+        // nextButton.classList.toggle('hidden', stepIndex === steps.length - 1);
+        // submitButton.classList.toggle('hidden', stepIndex !== steps.length - 1);
+    }
+
+    nextButton.addEventListener('click', () => {
+        if (currentStep === 0) {
+            const serviceType = document.getElementById('service_type').value;
+            if(confirmService) {
+                confirmService.textContent = serviceType;
+            }
+
+            if (!serviceType) {
+                alert('Please select a service type.');
+                return;
+            }
+            console.log(serviceType);
+        }
+        // currentStep++;
+        // showStep(currentStep);
+    });
+
+    prevButton.addEventListener('click', () => {
+        currentStep--;
+        showStep(currentStep);
+    });
+
+    showStep(currentStep);
+
+    function submitForm() {
+
+        const data = {
+            service: confirmService.textContent,
+            date: selectedDate,
+            time: selectedTimeSlot,
+            doctor_id: doctor_id,
+        }
+
+        fetch('/book-appointment', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        })
+        .then(response => response.json())
+        .then(data => {
+            if(data.status === 'success') {
+                closeModal();
+                renderCalendar();
+            } else {
+                alert('Appointment booking failed');
+            }
+        })
+        .catch(error => {
+            console.error('Error booking appointment:', error);
+        });
+    }
+    function nextStep() {
+ 
+
+        
+        if(currentStep === 0) {
+            const serviceType = document.getElementById('service_type').value;
+            if(confirmService) {
+                confirmService.textContent = serviceType;
+                fetch(`/check-pricing?time=${selectedTimeSlot}?date=${selectedDate}&service=${serviceType}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        setprice = data.price
+                        document.getElementById('confirm_price').textContent = setprice;
+                    }).catch(error => {
+                        console.error('Error fetching pricing:', error);
+                    });
+                currentStep++;
+
+                document.getElementById('nextButton').classList.add('hidden');
+                document.getElementById('submitButton').classList.remove('hidden');
+            }
+
+            if (!serviceType) {
+                alert('Please select a service type.');
+                return;
+            }
+        }
+
+        showStep(currentStep);
+    }
+</script>
+
+{% endblock %}
