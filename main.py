@@ -152,14 +152,23 @@ def check_schedule(request: Request, doctor_id: int, db: Session = Depends(get_d
 
 @app.get('/doctor/{doctor_id}')
 def doctor_detail(request: Request, doctor_id: int, db: Session = Depends(get_db)):
+
+    ## get location 
+    location = request.session.get('location')
     
-    doctor = db.query(Doctor).filter(Doctor.id == doctor_id).first()
+    clinic = db.query(Clinic).filter(Clinic.location == location).first()
+    doctor = db.query(Doctor).filter(Doctor.id == doctor_id, Doctor.clinic_id == clinic.id).first()
+
+    if not doctor:
+        return RedirectResponse('/')
+    
     doctors = db.query(Doctor).all()
     services = db.query(Services).all()
     user = request.session.get("user")
 
     future_schedules = db.query(Schedule).filter(
         Schedule.doctor_id == doctor.id,
+        Schedule.clinic_id == clinic.id,
         Schedule.date >= date.today()
     ).all()
     
@@ -168,8 +177,9 @@ def doctor_detail(request: Request, doctor_id: int, db: Session = Depends(get_db
 @app.get('/find-a-doctor')
 def find_a_doctor(request: Request, db: Session = Depends(get_db)):
     user = request.session.get("user") 
-    clinics = db.query(Clinic).all()
-    doctors = db.query(Doctor).all()
+    location = request.session.get('location')
+    clinics = db.query(Clinic).filter(Clinic.location == location).first()
+    doctors = db.query(Doctor).filter(Doctor.clinic_id == clinics.id).all()
     return render_template(request, "find-a-doctor.html", {"request": request, "user": user, "clinics": clinics, "doctors": doctors})
 
 
