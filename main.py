@@ -529,11 +529,31 @@ async def save_schedule(request: Request, db: Session = Depends(get_db)):
     if user['role'] != 'MANAGER' and user['role'] != 'ADMIN':
         return JSONResponse({"error": "You are not authorized to save this schedule"}, status_code=status.HTTP_403_FORBIDDEN)
     
+    
+
+
     data = await request.json()
     date = data.get("date")
     doctor_id = data.get("doctor_id")
     shift = data.get("shift")
     clinic_id = data.get("clinic_id")
+
+
+    ## lets add one more validation if its adding current date make sure the shift is already not passed lets say morning, afternoon, evening is not passed
+    current_date = datetime.now()
+    current_time = current_date.time()
+    current_date = current_date.strftime("%Y-%m-%d")
+
+    if date == current_date:
+        # Check if shift has already passed
+        if shift == "MORNING" and current_time.hour >= 12:
+            return JSONResponse({"error": "Morning shift has already passed"}, status_code=status.HTTP_400_BAD_REQUEST)
+        elif shift == "AFTERNOON" and current_time.hour >= 17:
+            return JSONResponse({"error": "Afternoon shift has already passed"}, status_code=status.HTTP_400_BAD_REQUEST) 
+        elif shift == "EVENING" and current_time.hour >= 22:
+            return JSONResponse({"error": "Evening shift has already passed"}, status_code=status.HTTP_400_BAD_REQUEST)
+    
+
     ## check if the schedule already exists
     existing_schedule = db.query(Schedule).filter(Schedule.date == date, Schedule.doctor_id == doctor_id, Schedule.clinic_id == clinic_id).first()
     if existing_schedule:
