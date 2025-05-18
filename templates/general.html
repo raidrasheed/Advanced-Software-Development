@@ -74,17 +74,16 @@
         </div>
         </div>
         <div class="w-full">
-          {% block content %}{% endblock %}
-          <div id="location-modal" class="hidden fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center z-50 bg-white rounded-lg shadow-lg">
-            <div class="bg-white p-6 rounded-lg shadow-lg w-96">
-                <h2 class="text-lg font-bold mb-4">Choose Your Location</h2>
-                <ul class="space-y-2" id="clinic-list">
-                </ul>
-                <button id="close-modal" class="mt-4 bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">
-                    Close
-                </button>
+            {% block content %}{% endblock %}
+            <div id="location-modal" class="hidden fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center z-50 bg-white rounded-lg shadow-lg">
+                <div class="bg-white p-6 rounded-lg shadow-lg w-96">
+                    <h2 class="text-lg font-bold mb-4">Choose Your Location</h2>
+                    <ul class="space-y-2" id="clinic-list"></ul>
+                    <button id="close-modal" class="mt-4 bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">
+                        Close
+                    </button>
+                </div>
             </div>
-          </div>
         </div>
   </div>
   <footer class="bg-gray-900 text-gray-100 pt-12 pb-6">
@@ -121,38 +120,35 @@
     document.addEventListener('DOMContentLoaded', function () {
         const toggleButton = document.getElementById('doctor-toggle');
         const doctorList = document.getElementById('doctor-list');
-        // location modal 
         const locationModal = document.getElementById('location-modal');
         const closeModalButton = document.getElementById('close-modal');
         const locationButton = document.getElementById('location-button');
 
-        // Toggle visibility
-
-        if(toggleButton){
+        if (toggleButton) {
             toggleButton.addEventListener('mouseover', function (e) {
                 e.stopPropagation();
                 doctorList.classList.toggle('hidden');
             });
         }
 
-        // Hide dropdown when clicking outside
-        if(doctorList){
-        document.addEventListener('click', function (e) {
-            if (!doctorList.contains(e.target) && !toggleButton.contains(e.target)) {
-                doctorList.classList.add('hidden');
-            }
-        });
+        if (doctorList) {
+            document.addEventListener('click', function (e) {
+                if (!doctorList.contains(e.target) && !toggleButton.contains(e.target)) {
+                    doctorList.classList.add('hidden');
+                }
+            });
         }
 
         showLocationModal = function () {
             locationModal.classList.remove('hidden');
         }
+
         closeModalButton.addEventListener('click', function () {
             locationModal.classList.add('hidden');
         });
 
         selectClinic = function (locations) {
-            const {clinic_id, location} = locations
+            const { clinic_id, location } = locations;
             locationModal.classList.add('hidden');
             fetch('/api/setlocation', {
                 method: 'POST',
@@ -169,8 +165,6 @@
             .catch(error => console.error('Error:', error));
         }
 
-        // get clinics 
-
         fetch('/api/clinics')
             .then(response => response.json())
             .then(data => {
@@ -179,8 +173,7 @@
                     const listItem = document.createElement('li');
                     listItem.textContent = clinic.name;
                     listItem.id = clinic.id;
-                    listItem.classList.add('hover:underline');
-                    listItem.classList.add('cursor-pointer');
+                    listItem.classList.add('hover:underline', 'cursor-pointer');
                     listItem.addEventListener('click', (clinic) => selectClinic({
                         clinic_id: clinic.target.id,
                         location: clinic.target.textContent
@@ -189,8 +182,5 @@
                 });
             })
             .catch(error => console.error('Error fetching clinics:', error));
-    // Close the modal when clicking outside of it
-    
-
     });
 </script>
