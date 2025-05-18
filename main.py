@@ -51,6 +51,7 @@ def render_template(request: Request, template_name: str, context: dict = None):
     context = context.copy() if context else {}
     context["request"] = request
     context["user"] = request.session.get("user")
+    context["location"] = request.session.get("location")
     return templates.TemplateResponse(template_name, context)
 # Dependency to get DB session
 def get_db():
@@ -269,10 +270,8 @@ def check_pricing(request: Request, db: Session = Depends(get_db)):
 
 @app.post("/api/setlocation")
 async def set_location(request: Request, db: Session = Depends(get_db)):
-    user = request.session.get("user")
-    if not user:
-        return JSONResponse({"error": "User not logged in"}, status_code=status.HTTP_401_UNAUTHORIZED)
-    
+    location = request.session.get("location")
+        
     body = await request.json()
     clinic_id = body.get("clinic_id")
     location = body.get("location")
@@ -280,9 +279,7 @@ async def set_location(request: Request, db: Session = Depends(get_db)):
     if not clinic_id:
         return JSONResponse({"error": "Clinic ID is required"}, status_code=status.HTTP_400_BAD_REQUEST)
     
-    user['clinic_id'] = clinic_id
-    user['location'] = location
-    request.session['user'] = user
+    request.session['location'] = location
     
     return JSONResponse({"message": "Location updated successfully", "clinic_id": clinic_id})
 
@@ -437,13 +434,29 @@ async def delete_doctor(doctor_id: int, request: Request, db: Session = Depends(
 def about(request: Request):
     return render_template(request, "aboutus.html", {"request": request})
 
+
+@app.get("/myaccount")
+def myaccount(request: Request, db: Session = Depends(get_db)):
+    user = request.session.get("user")
+    if not user:
+        return RedirectResponse("/login")
+    
+    appointments = db.query(Appointment).filter(Appointment.patient_id == user.get("id")).all()
+
+    return render_template(request, "myaccount.html", {"request": request, "user": user, "appointments": appointments})
+
+
+
 ### ALL ADMIN ROUTES
+
+## create a prefix route if admin is logged in
+
 
 @app.get("/admin")
 def dashboard(request: Request):
     user = request.session.get("user") 
-    # if user and user['role'] == 'CUSTOMER':
-    #     return RedirectResponse("/")
+    if user and user['role'] == 'CUSTOMER':
+        return RedirectResponse("/")
     # if not user:
     #     return RedirectResponse("/login")
     return render_template(request, "admin/dashboard.html", {"request": request, "user": user})
@@ -451,6 +464,8 @@ def dashboard(request: Request):
 @app.get("/admin/doctors")
 def doctors(request: Request, db: Session = Depends(get_db)):
     user = request.session.get("user") 
+    if user and user['role'] == 'CUSTOMER':
+        return RedirectResponse("/")
     doctors = db.query(Doctor).all()
     clinics = db.query(Clinic).all()
     if not user:
@@ -461,6 +476,9 @@ def doctors(request: Request, db: Session = Depends(get_db)):
 @app.get("/admin/appointments")
 def appointments(request: Request, db: Session = Depends(get_db)):
     user = request.session.get("user")
+
+    if user and user['role'] == 'CUSTOMER':
+        return RedirectResponse("/")
 
     if not user:
         return RedirectResponse("/login")

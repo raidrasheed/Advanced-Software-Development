@@ -24,6 +24,8 @@
                         <a href="/logout" class="bg-blue-600 text-white px-4 py-2 rounded-md">Logout</a>
                         {% if user and user.role == "ADMIN" or user.role == "MANAGER" %}
                             <a href="/admin" class="bg-orange-600 text-white px-4 py-2 rounded-md">Admin</a>
+                        {% elif user and user.role == "CUSTOMER" %}
+                            <a href="/myaccount" class="bg-orange-600 text-white px-4 py-2 rounded-md">My Account</a>
                         {% endif %}
                     {% else %}
                         <a href="/login" class="bg-blue-600 text-white px-4 py-2 rounded-md">Login</a>
@@ -31,8 +33,8 @@
                     {% endif %}
 
                     <a class="bg-teal-600 text-white px-4 py-2 rounded-md cursor-pointer" id="location-button" onclick="showLocationModal()">
-                        {% if user %}
-                            Change {{ user.get("location") }} 
+                        {% if location %}
+                            Change {{ location }} 
                         {% else %}
                             Choose Location
                         {% endif %}

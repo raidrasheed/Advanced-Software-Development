@@ -45,9 +45,12 @@
     </div>
 
     <script>
+        // Get current date in GMT+5
         let currentDate = new Date();
-        // Adjust to start of current week (Sunday)
-        currentDate.setDate(currentDate.getDate() - currentDate.getDay());
+        currentDate.setHours(currentDate.getHours() + 5); // Adjust to GMT+5
+        
+        // Set to start of current week (Sunday)
+        currentDate = new Date(currentDate.setDate(currentDate.getDate() - currentDate.getDay()));
         
         let selectedDoctors = {};
         let doctor_id = null;
@@ -74,7 +77,8 @@
                 const nextDate = new Date(baseDate);
                 nextDate.setDate(baseDate.getDate() + daysAhead);
 
-                // Format date as YYYY-MM-DD
+                // Format date as YYYY-MM-DD in GMT+5
+                nextDate.setHours(nextDate.getHours() + 5);
                 const formattedDate = nextDate.toISOString().split('T')[0];
 
                 return {
@@ -145,7 +149,8 @@
 
         document.getElementById('prevWeek').addEventListener('click', () => {
             const today = new Date();
-            // Adjust today to start of week
+            today.setHours(today.getHours() + 5); // Adjust to GMT+5
+            // Set to start of week (Sunday)
             today.setDate(today.getDate() - today.getDay());
             
             const newDate = new Date(currentDate);
@@ -163,6 +168,7 @@
         document.getElementById('nextWeek').addEventListener('click', () => {
             // Allow moving forward 4 weeks max
             const maxDate = new Date();
+            maxDate.setHours(maxDate.getHours() + 5); // Adjust to GMT+5
             maxDate.setDate(maxDate.getDate() + 28); // 4 weeks ahead
             
             const newDate = new Date(currentDate);
@@ -256,13 +262,19 @@
             const tbody = document.getElementById('scheduleBody');
             tbody.innerHTML = '';
 
+            // Get current date for comparison
+            const now = new Date();
+            now.setHours(now.getHours() + 5); // Adjust to GMT+5
+            const currentDateStr = now.toISOString().split('T')[0];
+            const currentHour = now.getHours();
+
             shifts.forEach(shift => {
                 const tr = document.createElement('tr');
                 
                 // Add shift cell
                 const shiftCell = document.createElement('td');
                 shiftCell.className = 'border p-2 font-medium';
-                shiftCell.innerHTML = `${shift}<br/>(${shiftTimes[shift]})`;
+                shiftCell.innerHTML = `${shift}`;
                 tr.appendChild(shiftCell);
 
                 // Add day cells
@@ -270,13 +282,23 @@
                     const td = document.createElement('td');
                     td.className = 'border p-2';
                     
-                    // Calculate date for this day
+                    // Calculate date for this day in GMT+5
                     const dayDate = new Date(startDate);
                     dayDate.setDate(startDate.getDate() + index);
+                    dayDate.setHours(dayDate.getHours() + 5);
                     const formattedDate = dayDate.toISOString().split('T')[0];
                     
-                    // Handle Friday differently
-                    if (day === 'Friday') {
+                    // Check if date is in the past or if shift has passed for current day
+                    const isPastDate = formattedDate < currentDateStr;
+                    const isCurrentDate = formattedDate === currentDateStr;
+                    const isShiftPassed = isCurrentDate && (
+                        (shift === 'Morning' && currentHour >= 12) ||
+                        (shift === 'Afternoon' && currentHour >= 17) ||
+                        (shift === 'Evening' && currentHour >= 22)
+                    );
+                    
+                    // Handle Friday or past dates/shifts
+                    if (day === 'Friday' || isPastDate || isShiftPassed) {
                         td.className = 'border p-2 bg-gray-200';
                         td.innerHTML = '<span class="text-gray-500">Not Available</span>';
                     } else {
