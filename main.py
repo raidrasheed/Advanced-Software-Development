@@ -488,6 +488,11 @@ def rooms(request: Request, db: Session = Depends(get_db)):
 @app.get("/admin/duty_roster")
 def duty_roster(request: Request, db: Session = Depends(get_db), clinic_id: str = None):
     user = request.session.get("user")
+
+    ##access only managers and admins
+    if user['role'] != 'MANAGER' and user['role'] != 'ADMIN':
+        return RedirectResponse("/admin")
+
     doctors = [{"id": doctor.id, "full_name": doctor.full_name} for doctor in db.query(Doctor).all()]
     clinics = db.query(Clinic).all()
     
@@ -518,6 +523,12 @@ async def confirm_appointment(appointment_id: int, request: Request, db: Session
 
 @app.post("/api/schedule")
 async def save_schedule(request: Request, db: Session = Depends(get_db)):
+    user = request.session.get("user")
+    if not user:
+        return RedirectResponse("/login")
+    if user['role'] != 'MANAGER' and user['role'] != 'ADMIN':
+        return JSONResponse({"error": "You are not authorized to save this schedule"}, status_code=status.HTTP_403_FORBIDDEN)
+    
     data = await request.json()
     date = data.get("date")
     doctor_id = data.get("doctor_id")
