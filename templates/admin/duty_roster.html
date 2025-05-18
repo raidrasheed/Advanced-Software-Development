@@ -1,0 +1,318 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mx-auto">
+    <h1 class="text-2xl font-bold mb-6">Weekly Doctor Schedule</h1>
+
+    <div class="bg-white p-6 rounded-lg shadow-md">
+        <div class="flex justify-between items-center mb-4">
+            <button id="prevWeek" class="px-4 py-2 text-sm bg-gray-100 rounded-md hover:bg-gray-200">&lt; Previous Week</button>
+            <h2 id="currentWeek" class="text-lg font-semibold">Week of <span id="weekStart"></span> to <span id="weekEnd"></span></h2>
+            <button id="nextWeek" class="px-4 py-2 text-sm bg-gray-100 rounded-md hover:bg-gray-200">Next Week &gt;</button>
+        </div>
+
+        <div class="mb-6">
+            <label for="clinic" class="block text-sm font-medium text-gray-700 mb-2">Select Clinic</label>
+            <select id="clinic" class="w-full p-2 border rounded-md" onchange="changeClinic(this.value)">
+                <option value="">Select a clinic</option>
+                {% for clinic in clinics %}
+                <option value="{{ clinic.id }}" {% if clinic.id|int == clinic_id|int %}selected{% endif %}>{{ clinic.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full border-collapse">
+                <thead>
+                    <tr>
+                        <th class="border p-2">Time Slot</th>
+                        <th class="border p-2" id="sunday">Sunday<br><small></small></th>
+                        <th class="border p-2" id="monday">Monday<br><small></small></th>
+                        <th class="border p-2" id="tuesday">Tuesday<br><small></small></th>
+                        <th class="border p-2" id="wednesday">Wednesday<br><small></small></th>
+                        <th class="border p-2" id="thursday">Thursday<br><small></small></th>
+                        <th class="border p-2" id="friday">Friday<br><small></small></th>
+                        <th class="border p-2" id="saturday">Saturday<br><small></small></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tbody id="scheduleBody">
+                        <!-- Schedule rows will be populated by JavaScript -->
+                    </tbody>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        let currentDate = new Date();
+        // Adjust to start of current week (Sunday)
+        currentDate.setDate(currentDate.getDate() - currentDate.getDay());
+        
+        let selectedDoctors = {};
+        let doctor_id = null;
+        let clinic_id = {{ clinic_id }};
+
+        let doctors = {{ doctors|tojson|safe }};
+
+        function getUpcomingDates(targetDays, baseDate) {
+            const weekdayToInt = {
+                "Sunday": 0,
+                "Monday": 1,
+                "Tuesday": 2,
+                "Wednesday": 3,
+                "Thursday": 4,
+                "Friday": 5,
+                "Saturday": 6,
+            };
+
+            const dates = targetDays.map(dayName => {
+                const targetWeekday = weekdayToInt[dayName];
+                const baseWeekday = baseDate.getDay();
+                const daysAhead = (targetWeekday - baseWeekday + 7) % 7;
+
+                const nextDate = new Date(baseDate);
+                nextDate.setDate(baseDate.getDate() + daysAhead);
+
+                // Format date as YYYY-MM-DD
+                const formattedDate = nextDate.toISOString().split('T')[0];
+
+                return {
+                    name: dayName,
+                    date: formattedDate
+                };
+            });
+
+            return dates;
+        }
+
+        function handleDoctorSelection(select) {
+            const day = select.dataset.day;
+            const shift = select.dataset.shift;
+            const doctorId = select.value;
+            doctor_id = doctorId;
+
+            if (!selectedDoctors[day]) {
+                selectedDoctors[day] = {};
+            }
+
+            // If doctor was previously selected for another shift on same day, clear it
+            if (doctorId) {
+                Object.keys(selectedDoctors[day]).forEach(existingShift => {
+                    if (selectedDoctors[day][existingShift] === doctorId) {
+                        selectedDoctors[day][existingShift] = null;
+                        // Clear the corresponding select element
+                        document.querySelector(`select[data-day="${day}"][data-shift="${existingShift}"]`).value = "";
+                    }
+                });
+            }
+
+            selectedDoctors[day][shift] = doctorId;
+
+            // Get the date for this day from current week's dates
+            const targetDays = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+            const weekDates = getUpcomingDates(targetDays, currentDate);
+            const dateObj = weekDates.find(d => d.name === day);
+            
+            saveSchedule(dateObj.date, shift, doctorId, clinic_id);
+        }
+
+        async function saveSchedule(date, shift, doctorId, clinic_id) {
+            try {
+                const body = {
+                    date: date,
+                    doctor_id: doctorId,
+                    shift: shift,
+                    clinic_id: clinic_id
+                }
+                
+                const response = await fetch('/api/schedule', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(body)
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to save schedule');
+                }
+
+            } catch (error) {
+                console.error('Error saving schedule:', error);
+            }
+        }
+
+        document.getElementById('prevWeek').addEventListener('click', () => {
+            const today = new Date();
+            // Adjust today to start of week
+            today.setDate(today.getDate() - today.getDay());
+            
+            const newDate = new Date(currentDate);
+            newDate.setDate(newDate.getDate() - 7);
+            
+            // Only update if new date is not before adjusted today
+            if (newDate >= today) {
+                currentDate = newDate;
+                updateWeekDisplay();
+                loadSchedule(currentDate);
+                renderSchedule(currentDate);
+            }
+        });
+
+        document.getElementById('nextWeek').addEventListener('click', () => {
+            // Allow moving forward 4 weeks max
+            const maxDate = new Date();
+            maxDate.setDate(maxDate.getDate() + 28); // 4 weeks ahead
+            
+            const newDate = new Date(currentDate);
+            newDate.setDate(newDate.getDate() + 7);
+            
+            if (newDate <= maxDate) {
+                currentDate = newDate;
+                updateWeekDisplay();
+                loadSchedule(currentDate);
+                renderSchedule(currentDate);
+            }
+        });
+
+        function updateWeekDisplay() {
+            const targetDays = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+            const weekDates = getUpcomingDates(targetDays, currentDate);
+
+            // Update header dates
+            weekDates.forEach(dateObj => {
+                const th = document.getElementById(dateObj.name.toLowerCase());
+                if (th) {
+                    th.querySelector('small').textContent = dateObj.date;
+                }
+            });
+
+            document.getElementById('weekStart').textContent = weekDates[0].date;
+            document.getElementById('weekEnd').textContent = weekDates[6].date;
+        }
+
+        async function loadSchedule(date) {
+            try {
+                const targetDays = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+                const weekDates = getUpcomingDates(targetDays, date);
+
+                const weekStart = weekDates[0].date;
+                const weekEnd = weekDates[6].date;
+
+                if (!clinic_id) {
+                    console.error('No clinic selected');
+                    return;
+                }
+
+                const response = await fetch(`/api/schedule?start=${weekStart}&end=${weekEnd}&clinic_id=${clinic_id}`);
+                const schedule = await response.json();
+
+                // Clear existing selections
+                selectedDoctors = {};
+                document.querySelectorAll('.doctor-select').forEach(select => select.value = '');
+
+                // Populate schedule based on date and shift
+                schedule.forEach(entry => {
+                    const entryDate = entry.date;
+                    const dayData = weekDates.find(d => d.date === entryDate);
+                    if (dayData) {
+                        const daySelect = document.querySelector(`select[data-day="${dayData.name}"][data-shift="${entry.time_slot}"]`);
+                        if (daySelect) {
+                            daySelect.value = entry.doctor_id;
+                            
+                            // Update selectedDoctors object
+                            const day = daySelect.dataset.day;
+                            if (!selectedDoctors[day]) {
+                                selectedDoctors[day] = {};
+                            }
+                            selectedDoctors[day][entry.time_slot] = entry.doctor_id;
+                        }
+                    }
+                });
+
+            } catch (error) {
+                console.error('Error loading schedule:', error);
+            }
+        }
+
+        function changeClinic(clinic_id) {
+            return window.location.href = `/admin/duty_roster?clinic_id=${clinic_id}`;
+        }
+
+        // Initialize
+        updateWeekDisplay();
+        loadSchedule(currentDate);
+
+        function renderSchedule(startDate) {
+            const shifts = ['Morning', 'Afternoon', 'Evening'];
+            const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+            const shiftTimes = {
+                'Morning': '8AM-12PM',
+                'Afternoon': '1PM-5PM', 
+                'Evening': '6PM-10PM'
+            };
+            
+            const tbody = document.getElementById('scheduleBody');
+            tbody.innerHTML = '';
+
+            shifts.forEach(shift => {
+                const tr = document.createElement('tr');
+                
+                // Add shift cell
+                const shiftCell = document.createElement('td');
+                shiftCell.className = 'border p-2 font-medium';
+                shiftCell.innerHTML = `${shift}<br/>(${shiftTimes[shift]})`;
+                tr.appendChild(shiftCell);
+
+                // Add day cells
+                days.forEach((day, index) => {
+                    const td = document.createElement('td');
+                    td.className = 'border p-2';
+                    
+                    // Calculate date for this day
+                    const dayDate = new Date(startDate);
+                    dayDate.setDate(startDate.getDate() + index);
+                    const formattedDate = dayDate.toISOString().split('T')[0];
+                    
+                    // Handle Friday differently
+                    if (day === 'Friday') {
+                        td.className = 'border p-2 bg-gray-200';
+                        td.innerHTML = '<span class="text-gray-500">Not Available</span>';
+                    } else {
+                        const select = document.createElement('select');
+                        select.className = 'w-full p-1 border rounded doctor-select';
+                        select.setAttribute('data-day', day);
+                        select.setAttribute('data-date', formattedDate);
+                        select.setAttribute('data-shift', shift.toUpperCase());
+                        select.onchange = function() { handleDoctorSelection(this); };
+
+                        // Add default option
+                        const defaultOption = document.createElement('option');
+                        defaultOption.value = '';
+                        defaultOption.textContent = 'Select Doctor';
+                        select.appendChild(defaultOption);
+
+                        // Add doctor options
+                        doctors.forEach(doctor => {
+                            const option = document.createElement('option');
+                            option.value = doctor.id;
+                            option.textContent = `${doctor.full_name}`;
+                            select.appendChild(option);
+                        });
+
+                        td.appendChild(select);
+                    }
+                    
+                    tr.appendChild(td);
+                });
+
+                tbody.appendChild(tr);
+            });
+        }
+
+        // Initial render
+        renderSchedule(currentDate);
+    </script>
+</div>
+{% endblock %}

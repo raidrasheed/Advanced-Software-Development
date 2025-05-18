@@ -3,6 +3,7 @@
 {% block title %}Doctor Detail{% endblock %}
 
 {% block content %}
+<div class="container mx-auto">
     <div class="flex flex-row">
         <div class="w-2/3">
             <div class="p-2">
@@ -87,6 +88,7 @@
 
         {% endif %}
     </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
@@ -138,15 +140,31 @@
         const grid = calendar.querySelector('.grid');
         grid.innerHTML = '';
 
+        // Add day headers first
+        const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        for (let i = 0; i < days.length; i++) {
+            const dayCell = document.createElement('div');
+            dayCell.textContent = days[i];
+            dayCell.className = 'p-2 rounded text-center font-semibold';
+            if(days[i] === 'Fri') {
+                dayCell.classList.add('disabled');
+                dayCell.classList.add('text-gray-200');
+                dayCell.classList.add('cursor-not-allowed');
+            }
+            grid.appendChild(dayCell);
+        }
+
+        // Add empty cells for days before the first of the month
         for (let i = 0; i < firstDay; i++) {
             const emptyCell = document.createElement('div');
+            emptyCell.className = 'p-2 text-gray-300 bg-gray-50';
             grid.appendChild(emptyCell);
         }
 
         for (let day = 1; day <= daysInMonth; day++) {
             const dayCell = document.createElement('div');
             dayCell.textContent = day;
-            dayCell.className = 'p-2 rounded hover:bg-gray-200';
+            dayCell.className = 'p-2 rounded hover:bg-gray-200 text-center cursor-pointer';
             grid.appendChild(dayCell);
 
             if(day === date.getDate() && month === new Date().getMonth() && year === new Date().getFullYear()) {
@@ -158,7 +176,14 @@
                 dayCell.classList.add('text-gray-200');
             }
 
-            // on click a date
+            // Check if the day falls on a Friday
+            const dayDate = new Date(year, month, day);
+            if (dayDate.toLocaleDateString('en-US', { weekday: 'short' }) === 'Fri') {
+                dayCell.classList.add('disabled');
+                dayCell.classList.add('text-gray-200');
+                dayCell.classList.add('cursor-not-allowed');
+                dayCell.classList.remove('hover:bg-gray-200');
+            }
 
             /// auto click current date 
             if(day === new Date().getDate() && month === new Date().getMonth() && year === new Date().getFullYear()) {
@@ -166,7 +191,12 @@
             }
 
             dayCell.addEventListener('click', async () => {
-                // high light this date
+                // Check if it's a Friday before processing click
+                const clickedDate = new Date(year, month, day);
+                if (clickedDate.toLocaleDateString('en-US', { weekday: 'short' }) === 'Fri') {
+                    return; // Don't process click for Fridays
+                }
+
                 const allDays = grid.querySelectorAll('div');
                 allDays.forEach((d) => {
                     d.classList.remove('bg-slate-200');

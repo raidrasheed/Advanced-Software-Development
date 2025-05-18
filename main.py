@@ -9,7 +9,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy import func
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
-
+from utils.func import week_dates
 
 
 from datetime import date, datetime 
@@ -485,6 +485,20 @@ def rooms(request: Request, db: Session = Depends(get_db)):
 
     return render_template(request, "admin/rooms.html", {"request": request, "user": user, "clinics": clinics_with_rooms})
 
+@app.get("/admin/duty_roster")
+def duty_roster(request: Request, db: Session = Depends(get_db), clinic_id: str = None):
+    user = request.session.get("user")
+    doctors = [{"id": doctor.id, "full_name": doctor.full_name} for doctor in db.query(Doctor).all()]
+    clinics = db.query(Clinic).all()
+    
+
+
+    
+    if not user:
+        return RedirectResponse("/login")
+    return render_template(request, "admin/duty_roster.html", {"request": request, "user": user, "doctors": doctors, "clinics": clinics, "clinic_id": clinic_id, "week_dates": week_dates})
+
+
 
 ### API ROUTES
 @app.post("/api/appointments/{appointment_id}")
@@ -502,3 +516,29 @@ async def confirm_appointment(appointment_id: int, request: Request, db: Session
     db.commit()
     return JSONResponse({"message": "Appointment status updated successfully"})
 
+@app.post("/api/schedule")
+async def save_schedule(request: Request, db: Session = Depends(get_db)):
+    data = await request.json()
+    date = data.get("date")
+    doctor_id = data.get("doctor_id")
+    shift = data.get("shift")
+    clinic_id = data.get("clinic_id")
+    ## check if the schedule already exists
+    existing_schedule = db.query(Schedule).filter(Schedule.date == date, Schedule.doctor_id == doctor_id, Schedule.clinic_id == clinic_id).first()
+    if existing_schedule:
+        return JSONResponse({"message": "Schedule modified successfully"})
+    
+    new_schedule = Schedule(
+        date=date,
+        doctor_id=doctor_id,
+        clinic_id=clinic_id,
+        time_slot=shift
+    )
+    db.add(new_schedule)
+    db.commit()
+    return JSONResponse({"message": "Schedule saved successfully"})
+
+@app.get("/api/schedule")
+async def get_schedule(request: Request, start: str, end: str, clinic_id: int, db: Session = Depends(get_db)):
+    schedule = db.query(Schedule).filter(Schedule.date >= start, Schedule.date <= end, Schedule.clinic_id == clinic_id).all()
+    return schedule
