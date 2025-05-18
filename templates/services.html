@@ -1,27 +1,37 @@
 {% extends "general.html" %}
 
 {% block content %}
-<div class="container mx-auto ">
-  <h1 class="text-2xl md:text-4xl mb-5 font-bold text-blue-800">Services</h1>
+<div class="container mx-auto px-4 py-12">
+  <!-- Page Title -->
+  <div class="text-center mb-10">
+    <h1 class="text-4xl font-bold text-blue-800">Our Dental Services</h1>
+    <p class="mt-2 text-gray-600 max-w-xl mx-auto">Explore the wide range of dental care solutions we offer to help you maintain a healthy and confident smile.</p>
+  </div>
 
-  <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
+  <!-- Services Grid -->
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
     {% for service in services %}
     {% set safe_name = service.name.replace('/', '-').replace(' ', '-') %}
 
-    <div class="relative group rounded-xl overflow-hidden shadow-md h-65 bg-white cursor-pointer">
-
+    <div class="relative group rounded-xl overflow-hidden shadow-lg h-80 bg-white transition-all duration-300 transform hover:scale-[1.02]">
+      <!-- Image -->
       <img
         src="/static/images/{{ safe_name }}.png"
         alt="{{ service.name }}"
-        class="w-25 h-25 object-cover transition duration-300 group-hover:blur-sm group-hover:scale-105"
+        class="absolute inset-0 w-full h-full object-cover group-hover:blur-sm group-hover:scale-105 transition duration-300 z-0"
         onerror="this.onerror=null;this.src='/static/images/default.png';"
       >
-      
-      <div class="absolute inset-0 flex flex-col justify-center items-center bg-black bg-opacity-60 opacity-0 group-hover:opacity-100 transition duration-300 text-white px-4 text-center">
-        <h2 class="text-xl font-bold mb-2">{{ service.name }}</h2>
-        <p class="text-sm">{{ service.description }}</p>
+
+      <!-- Overlay -->
+      <div class="absolute inset-0 bg-black bg-opacity-60 opacity-0 group-hover:opacity-100 transition duration-300 z-10 flex flex-col justify-center items-center text-white text-center px-6">
+        <h2 class="text-2xl font-bold mb-2">{{ service.name }}</h2>
+        <p class="text-sm leading-relaxed">{{ service.description }}</p>
       </div>
 
+      <!-- Visible Title (non-hover fallback for mobile) -->
+      <div class="relative z-20 flex items-end h-full bg-gradient-to-t from-black/70 to-transparent p-4 md:hidden">
+        <h2 class="text-white text-xl font-semibold">{{ service.name }}</h2>
+      </div>
     </div>
     {% endfor %}
   </div>
