@@ -51,7 +51,9 @@ def render_template(request: Request, template_name: str, context: dict = None):
     context = context.copy() if context else {}
     context["request"] = request
     context["user"] = request.session.get("user")
-    context["location"] = request.session.get("location")
+    location = request.session.get("location", "Male City")  # Set default location to "Male City"
+    request.session["location"] = location
+    context["location"] = location
     return templates.TemplateResponse(template_name, context)
 # Dependency to get DB session
 def get_db():
@@ -112,6 +114,8 @@ def register_get(request: Request):
 @app.get('/check-schedule/{doctor_id}')
 def check_schedule(request: Request, doctor_id: int, db: Session = Depends(get_db)):
     user = request.session.get("user")
+    location = request.session.get("location")
+    clinic = db.query(Clinic).filter(Clinic.location == location).first()
 
 
     selected_date = request.query_params.get("date")
@@ -121,7 +125,7 @@ def check_schedule(request: Request, doctor_id: int, db: Session = Depends(get_d
     schedules = db.query(Schedule).filter(
             Schedule.doctor_id == doctor_id,
             func.date(Schedule.date) == selected_date,
-            Schedule.clinic_id == user.get("clinic_id"),  # Assuming clinic_id is 1 for this example should be dynamic ... @todo
+            Schedule.clinic_id == clinic.id,  # Assuming clinic_id is 1 for this example should be dynamic ... @todo
         ).first()
     
 
@@ -177,7 +181,7 @@ def doctor_detail(request: Request, doctor_id: int, db: Session = Depends(get_db
 @app.get('/find-a-doctor')
 def find_a_doctor(request: Request, db: Session = Depends(get_db)):
     user = request.session.get("user") 
-    location = request.session.get('location')
+    location = request.session.get('location', "Male City")
     clinics = db.query(Clinic).filter(Clinic.location == location).first()
     doctors = db.query(Doctor).filter(Doctor.clinic_id == clinics.id).all()
     return render_template(request, "find-a-doctor.html", {"request": request, "user": user, "clinics": clinics, "doctors": doctors})
@@ -296,6 +300,9 @@ async def set_location(request: Request, db: Session = Depends(get_db)):
 @app.post("/book-appointment")
 async def book_appointment(request: Request, db: Session = Depends(get_db)):
     user = request.session.get("user")
+    location = request.session.get("location")
+
+    clinic = db.query(Clinic).filter(Clinic.location == location).first()
     if not user:
         return JSONResponse({"error": "User not logged in"}, status_code=status.HTTP_401_UNAUTHORIZED)
     
@@ -327,6 +334,7 @@ async def book_appointment(request: Request, db: Session = Depends(get_db)):
         Appointment.doctor_id == doctor_id,
         Appointment.clinic_id == user.get("clinic_id"),
         Appointment.appointment_date == sql_date,
+        Appointment.clinic_id == clinic.id,
         Appointment.time_slot == getTimeSlot(time)
     ).all()
 
@@ -339,7 +347,7 @@ async def book_appointment(request: Request, db: Session = Depends(get_db)):
         doctor_id=doctor_id,
         room_id=1,
         service_type=service,
-        clinic_id=user.get("clinic_id"),
+        clinic_id=clinic.id,
         time_slot=getTimeSlot(time),
         appointment_date=sql_date,
         price=pricing.price,
