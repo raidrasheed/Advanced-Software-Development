@@ -1,43 +1,66 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>{% block title %}FastAPI App{% endblock %}</title>
-    <link href="/static/build/styles.css" rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}Login | Island Dental Cline Service{% endblock %}</title>
+  <link href="/static/build/styles.css" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
-<div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-blue-100">
-    <div class="bg-white p-8 rounded-lg shadow-lg w-96">
-        <h2 class="text-2xl font-bold text-center text-gray-800 mb-8">Login</h2>
-        <form method="post" class="space-y-6">
-            <div>
-                <input 
-                    type="text" 
-                    name="email" 
-                    placeholder="email" 
-                    required
-                    class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200"
-                >
-            </div>
-            <div>
-                <input 
-                    type="password" 
-                    name="password" 
-                    placeholder="Password" 
-                    required
-                    class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200"
-                >
-            </div>
-            <button 
-                type="submit"
-                class="w-full bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600 transition duration-200"
-            >
-                Login
-            </button>
-        </form>
-        <p class="text-red-500 text-center mt-4">{{ error if error }}</p>
+<body class="bg-gradient-to-br from-blue-100 to-blue-200 font-sans">
+
+  <div class="min-h-screen flex items-center justify-center px-4">
+    <div class="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md">
+      <h2 class="text-3xl font-bold text-center text-blue-800 mb-6">Welcome Back</h2>
+      <p class="text-center text-gray-600 mb-6 text-sm">Your Smile, Our Priority</p>
+
+      <form method="post" class="space-y-5">
+        <!-- Email Field -->
+        <div>
+          <label for="email" class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+          <input 
+            type="text"
+            name="email"
+            id="email"
+            placeholder="you@example.com"
+            required
+            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+
+        <!-- Password Field -->
+        <div>
+          <label for="password" class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+          <input 
+            type="password"
+            name="password"
+            id="password"
+            placeholder="********"
+            required
+            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+
+        <!-- Submit Button -->
+        <button
+          type="submit"
+          class="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition"
+        >
+          Login
+        </button>
+      </form>
+
+      <!-- Error Display -->
+      {% if error %}
+        <p class="text-red-500 text-center mt-4 text-sm">{{ error }}</p>
+      {% endif %}
+
+      <!-- Optional Links -->
+      <p class="text-center text-sm text-gray-500 mt-6">
+        Don't have an account? <a href="/register" class="text-blue-600 hover:underline">Register here</a>
+      </p>
     </div>
-</div>
+  </div>
+
 </body>
 </html>
