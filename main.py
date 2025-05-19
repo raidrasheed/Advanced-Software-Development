@@ -9,8 +9,9 @@ from fastapi.responses import JSONResponse
 from sqlalchemy import func
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
-from utils.func import week_dates
-
+from utils.func import render_template
+from api.api import api_router
+from admin.admin import admin_router
 
 from datetime import date, datetime 
 
@@ -23,8 +24,8 @@ from models.clinics import Clinic
 from models.schedule import Schedule
 from models.appointments import Appointment
 from models.pricing import Pricing
-from models.room import Room
-from models.bookings import Booking
+
+from utils.func import get_db, get_current_user, getTimeSlot, authenticate_user
 
 
 
@@ -46,44 +47,6 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # Create tables
 Base.metadata.create_all(bind=engine)
-
-
-def render_template(request: Request, template_name: str, context: dict = None):
-    context = context.copy() if context else {}
-    context["request"] = request
-    context["user"] = request.session.get("user")
-    location = request.session.get("location", "Male City")  # Set default location to "Male City"
-    request.session["location"] = location
-    context["location"] = location
-    return templates.TemplateResponse(template_name, context)
-# Dependency to get DB session
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-def getTimeSlot(time: str):
-    if time >= "00:00" and time <= "12:00":
-        return "morning"
-    elif time >= "12:00" and time <= "16:00":
-        return "afternoon"
-    else:
-        return "evening"
-# Auth logic
-def authenticate_user(db: Session, email: str, password: str):
-    user = db.query(User).filter(User.email == email).first()
-    if user and bcrypt.verify(password, user.hashed_password):
-        return user
-    return None
-
-
-# templates = Jinja2Templates(directory="templates")
-def get_current_user(request: Request):
-    return request.session.get("user")
-
-
 
 
 
@@ -224,9 +187,14 @@ def login_get(request: Request):
 
 @app.post("/login")
 def login_post(request: Request, email: str = Form(...), password: str = Form(...), db: Session = Depends(get_db)):
-    user = authenticate_user(db, email, password)
-    if not user:
+    authorisation = authenticate_user(db, email, password)
+    if not authorisation:
         return render_template(request, "login.html", {"request": request, "error": "Invalid credentials"})
+    
+    user = db.query(User).filter(User.id == authorisation.id).first()
+
+
+
     request.session['user'] = {
         'id': user.id,
         'full_name': user.full_name,
@@ -235,6 +203,7 @@ def login_post(request: Request, email: str = Form(...), password: str = Form(..
         'identifier': user.identifier,
         'role': user.role,
         'clinic_id': 1,
+        'doctor_id': user.doctor.id if user.doctor else None,
         'location': "Male CIty"
     }
     if user.role == "CUSTOMER":
@@ -243,10 +212,6 @@ def login_post(request: Request, email: str = Form(...), password: str = Form(..
         return RedirectResponse("/admin", status_code=status.HTTP_302_FOUND)
 
 
-@app.get('/api/clinics')
-def get_clinics(request: Request, db: Session = Depends(get_db)):
-    clinics = db.query(Clinic).all()
-    return JSONResponse([{"id": clinic.id, "name": clinic.location} for clinic in clinics])
 
 @app.get("/logout")
 def logout(request: Request):
@@ -284,32 +249,7 @@ def check_pricing(request: Request, db: Session = Depends(get_db)):
     
     
 
-@app.post("/api/setlocation")
-async def set_location(request: Request, db: Session = Depends(get_db)):
-    location = request.session.get("location")
-        
-    body = await request.json()
-    clinic_id = body.get("clinic_id")
-    location = body.get("location")
 
-    if not clinic_id:
-        return JSONResponse({"error": "Clinic ID is required"}, status_code=status.HTTP_400_BAD_REQUEST)
-    
-    request.session['location'] = location
-    
-    return JSONResponse({"message": "Location updated successfully", "clinic_id": clinic_id})
-
-
-@app.get("/admin/bookings")
-def bookings(request: Request, db: Session = Depends(get_db)):
-    user = request.session.get("user")
-    if not user:
-        return RedirectResponse("/login")
-    
-    bookings = db.query(Booking).all()
-
-    
-    return render_template(request, "admin/bookings.html", {"request": request, "user": user, "bookings": bookings})
 
 @app.post("/book-appointment")
 async def book_appointment(request: Request, db: Session = Depends(get_db)):
@@ -325,9 +265,6 @@ async def book_appointment(request: Request, db: Session = Depends(get_db)):
     date = body.get("date")
     time = body.get("time")
     doctor_id = body.get("doctor_id")
-    requires_surgery = body.get("requires_surgery")
-    requires_admission = body.get("requires_admission")
-
 
     ## get price from pricing table
     pricing = db.query(Pricing).filter(
@@ -387,91 +324,6 @@ async def book_appointment(request: Request, db: Session = Depends(get_db)):
 
 
 
-@app.get("/api/appointments/{appointment_id}")
-async def get_appointment(appointment_id: int, request: Request, db: Session = Depends(get_db)):
-    appointment = db.query(Appointment).filter(Appointment.id == appointment_id).first()
-    if not appointment:
-        return JSONResponse({"error": "Appointment not found"}, status_code=status.HTTP_404_NOT_FOUND)
-    return JSONResponse({
-        "id": appointment.id,
-        "booking_reference": appointment.booking_reference,
-        "service_type": appointment.service_type.value,
-        "patient_name": appointment.patient.full_name,
-        "appointment_date": appointment.appointment_date.strftime("%Y-%m-%d"),
-        "time_slot": appointment.time_slot.value,
-        "clinic": appointment.clinic.location,
-        "doctor": appointment.doctor.full_name,
-        "price": appointment.price,
-        "status": appointment.status,
-        "time": appointment.appointment_date.strftime("%H:%M")
-    })
-
-
-@app.put("/update-doctor/{doctor_id}")
-async def update_doctor(doctor_id: int, request: Request, db: Session = Depends(get_db)):
-    data = await request.json()
-
-    ## if user role is admin or manager
-    user = request.session.get("user")
-    if not user:
-        return JSONResponse({"error": "User not logged in"}, status_code=status.HTTP_401_UNAUTHORIZED)
-    if user['role'] != 'ADMIN' and user['role'] != 'MANAGER':
-        return JSONResponse({"error": "You are not authorized to update this doctor"}, status_code=status.HTTP_403_FORBIDDEN)
-    
-    doctor = db.query(Doctor).filter(Doctor.id == doctor_id).first()
-    if not doctor:
-        return JSONResponse({"error": "Doctor not found"}, status_code=status.HTTP_404_NOT_FOUND)
-    doctor.full_name = data.get("name")
-    doctor.speciality = data.get("speciality")
-    doctor.experience = data.get("experience")
-    doctor.clinic_id = data.get("clinic_id")
-    db.commit()
-    return JSONResponse({"message": "Doctor updated successfully"})
-
-
-@app.get("/api/doctors/{doctor_id}")
-async def get_doctor(doctor_id: int, request: Request, db: Session = Depends(get_db)):
-    doctor = db.query(Doctor).filter(Doctor.id == doctor_id).first()
-    if not doctor:
-        return JSONResponse({"error": "Doctor not found"}, status_code=status.HTTP_404_NOT_FOUND)
-    return doctor
-
-@app.post("/api/doctors/add")
-async def add_doctor(request: Request, db: Session = Depends(get_db)):
-    user = request.session.get("user")
-    if not user:
-        return JSONResponse({"error": "User not logged in"}, status_code=status.HTTP_401_UNAUTHORIZED)
-    if user['role'] != 'ADMIN' and user['role'] != 'MANAGER':
-        return JSONResponse({"error": "You are not authorized to add this doctor"}, status_code=status.HTTP_403_FORBIDDEN)
-    
-    data = await request.json()
-    name = data.get("name")
-    speciality = data.get("speciality")
-    experience = data.get("experience")
-    clinic_id = data.get("clinic_id")
-
-    new_doctor = Doctor(
-        full_name=name,
-        speciality=speciality,
-        experience=experience,
-        clinic_id=clinic_id
-    )
-    db.add(new_doctor)
-    db.commit() 
-    db.refresh(new_doctor)
-    return JSONResponse({"message": "Doctor added successfully", "doctor": new_doctor})
-
-
-@app.delete("/api/doctors/{doctor_id}")
-async def delete_doctor(doctor_id: int, request: Request, db: Session = Depends(get_db)):
-    doctor = db.query(Doctor).filter(Doctor.id == doctor_id).first()
-    if not doctor:
-        return JSONResponse({"error": "Doctor not found"}, status_code=status.HTTP_404_NOT_FOUND)
-    db.delete(doctor)
-    db.commit()
-    return JSONResponse({"message": "Doctor deleted successfully"})
-
-
 @app.get("/about-us")
 def about(request: Request):
     return render_template(request, "aboutus.html", {"request": request})
@@ -488,264 +340,5 @@ def myaccount(request: Request, db: Session = Depends(get_db)):
     return render_template(request, "myaccount.html", {"request": request, "user": user, "appointments": appointments})
 
 
-
-### ALL ADMIN ROUTES
-
-## create a prefix route if admin is logged in
-
-
-@app.get("/admin")
-def dashboard(request: Request):
-    user = request.session.get("user") 
-    if user and user['role'] == 'CUSTOMER':
-        return RedirectResponse("/")
-    # if not user:
-    #     return RedirectResponse("/login")
-    return render_template(request, "admin/dashboard.html", {"request": request, "user": user})
-
-@app.get("/admin/doctors")
-def doctors(request: Request, db: Session = Depends(get_db)):
-    user = request.session.get("user") 
-    if user and user['role'] == 'CUSTOMER':
-        return RedirectResponse("/")
-    doctors = db.query(Doctor).all()
-    clinics = db.query(Clinic).all()
-    if not user:
-        return RedirectResponse("/login")
-    return render_template(request, "admin/doctors.html", {"request": request, "user": user, "doctors": doctors, "clinics": clinics})
-
-
-@app.get("/admin/appointments")
-def appointments(request: Request, db: Session = Depends(get_db)):
-    user = request.session.get("user")
-
-    if user and user['role'] == 'CUSTOMER':
-        return RedirectResponse("/")
-
-    if not user:
-        return RedirectResponse("/login")
-    
-    if user and user['role'] == 'CUSTOMER':
-        appointments = db.query(Appointment).filter(
-        Appointment.patient_id == user.get("id")
-    ).all()
-    elif user and user['role'] == 'ADMIN':
-        appointments = db.query(Appointment).all()
-    
-    
-    return render_template(request, "admin/appointments.html", {"request": request, "user": user, "appointments": appointments})    
-
-@app.get("/admin/rooms")
-def rooms(request: Request, db: Session = Depends(get_db)):
-    user = request.session.get("user")
-    if not user:
-        return RedirectResponse("/login")
-    # Query rooms and join with clinics to group by clinic
-    clinics_with_rooms = db.query(Clinic).join(Clinic.rooms).all()
-
-    return render_template(request, "admin/rooms.html", {"request": request, "user": user, "clinics": clinics_with_rooms})
-
-@app.get("/admin/duty_roster")
-def duty_roster(request: Request, db: Session = Depends(get_db), clinic_id: str = None):
-    user = request.session.get("user")
-
-    ##access only managers and admins
-    if user['role'] != 'MANAGER' and user['role'] != 'ADMIN':
-        return RedirectResponse("/admin")
-
-    doctors = [{"id": doctor.id, "full_name": doctor.full_name} for doctor in db.query(Doctor).all()]
-    clinics = db.query(Clinic).all()
-    
-
-
-    
-    if not user:
-        return RedirectResponse("/login")
-    return render_template(request, "admin/duty_roster.html", {"request": request, "user": user, "doctors": doctors, "clinics": clinics, "clinic_id": clinic_id, "week_dates": week_dates})
-
-@app.get("/admin/manage")
-def manage(request: Request, db: Session = Depends(get_db)):
-    user = request.session.get("user")
-    if not user:
-        return RedirectResponse("/login")
-    
-    users = db.query(User).all()
-    return render_template(request, "admin/manage.html", {"request": request, "user": user, "users": users})
-
-@app.post("/api/users")
-async def add_user(request: Request, db: Session = Depends(get_db)):
-    data = await request.json()
-    ## user has to be admin
-    user = request.session.get("user")
-    if not user:
-        return JSONResponse({"error": "User not logged in"}, status_code=status.HTTP_401_UNAUTHORIZED)
-    if user['role'] != 'ADMIN':
-        return JSONResponse({"error": "You are not authorized to add this user"}, status_code=status.HTTP_403_FORBIDDEN)
-
-    user = User(
-        full_name=data.get("full_name"),
-        email=data.get("email"),
-        contact=data.get("contact"),
-        identifier=data.get("identifier"),
-        role=data.get("role"),
-        password=data.get("password")
-    )
-    db.add(user)
-    db.commit() 
-    return JSONResponse({"message": "User added successfully"})
-
-@app.put("/api/users/{user_id}")
-async def update_user(user_id: int, request: Request, db: Session = Depends(get_db)):
-    data = await request.json()
-    user = request.session.get("user")
-    if not user:
-        return JSONResponse({"error": "User not logged in"}, status_code=status.HTTP_401_UNAUTHORIZED)
-    if user['role'] != 'ADMIN':
-        return JSONResponse({"error": "You are not authorized to update this user"}, status_code=status.HTTP_403_FORBIDDEN)
-    
-    user = db.query(User).filter(User.id == user_id).first()
-    if not user:
-        return JSONResponse({"error": "User not found"}, status_code=status.HTTP_404_NOT_FOUND)
-    
-    user.full_name = data.get("full_name")
-    user.email = data.get("email")
-    user.contact = data.get("contact")
-    user.identifier = data.get("identifier")
-    user.role = data.get("role")
-    db.commit()
-    return JSONResponse({"message": "User updated successfully"})
-
-@app.delete("/api/users/{user_id}")
-async def delete_user(user_id: int, request: Request, db: Session = Depends(get_db)):
-    user = request.session.get("user")
-    if not user:
-        return JSONResponse({"error": "User not logged in"}, status_code=status.HTTP_401_UNAUTHORIZED)
-    if user['role'] != 'ADMIN':
-        return JSONResponse({"error": "You are not authorized to delete this user"}, status_code=status.HTTP_403_FORBIDDEN)
-    
-    user = db.query(User).filter(User.id == user_id).first()
-    if not user:
-        return JSONResponse({"error": "User not found"}, status_code=status.HTTP_404_NOT_FOUND)
-    db.delete(user)
-    db.commit()
-    return JSONResponse({"message": "User deleted successfully"})
-    
-### API ROUTES
-@app.post("/api/appointments/{appointment_id}")
-async def confirm_appointment(appointment_id: int, request: Request, db: Session = Depends(get_db)):
-    data = await request.json()
-    status = data.get("status")
-    requires_surgery = data.get("requires_surgery")
-    requires_admission = data.get("requires_admission")
-
-    if not status:
-        return JSONResponse(
-            {"error": "Status is required"}, 
-            status_code=status.HTTP_400_BAD_REQUEST
-        )
-        
-    appointment = db.query(Appointment).filter(Appointment.id == appointment_id).first()
-    if not appointment:
-        return JSONResponse(
-            {"error": "Appointment not found"}, 
-            status_code=status.HTTP_404_NOT_FOUND
-        )
-        
-    appointment.status = status
-    db.commit()
-
-    # Handle room booking
-    booking_date = appointment.appointment_date.strftime("%Y-%m-%d")
-    
-    # Get existing bookings for the day
-    bookings = db.query(Booking).filter(Booking.booking_date == booking_date).all()
-    
-    # Get room counts by type
-    room_counts = {
-        "surgery": sum(1 for b in bookings if db.query(Room).get(b.room_id).room_type == "surgery"),
-        "regular": sum(1 for b in bookings if db.query(Room).get(b.room_id).room_type == "regular")
-    }
-
-    # Determine required room type and validate availability
-    room_type = "surgery" if requires_surgery else "regular"
-    max_rooms = 1 if room_type == "surgery" else 2
-    
-    if room_counts[room_type] >= max_rooms:
-        error_msg = f"{'Surgery' if room_type == 'surgery' else 'Regular'} room{'s' if max_rooms > 1 else ''} already fully booked for the day"
-        return JSONResponse({"error": error_msg}, status_code=400)
-
-    # Find available room
-    available_room = db.query(Room).filter(
-        Room.room_type == room_type,
-        Room.id.notin_([b.room_id for b in bookings])
-    ).first()
-
-    if not available_room:
-        return JSONResponse(
-            {"error": f"No {room_type} rooms available"}, 
-            status_code=400
-        )
-
-    # Create new booking
-    new_booking = Booking(
-        room_id=available_room.id,
-        booking_date=booking_date,
-        patient_id=appointment.patient_id
-    )
-    db.add(new_booking)
-    db.commit()
-
-    return JSONResponse({"message": "Appointment status updated successfully"})
-
-@app.post("/api/schedule")
-async def save_schedule(request: Request, db: Session = Depends(get_db)):
-    user = request.session.get("user")
-    if not user:
-        return RedirectResponse("/login")
-    if user['role'] != 'MANAGER' and user['role'] != 'ADMIN':
-        return JSONResponse({"error": "You are not authorized to save this schedule"}, status_code=status.HTTP_403_FORBIDDEN)
-    
-    
-
-
-    data = await request.json()
-    date = data.get("date")
-    doctor_id = data.get("doctor_id")
-    shift = data.get("shift")
-    clinic_id = data.get("clinic_id")
-
-
-    ## lets add one more validation if its adding current date make sure the shift is already not passed lets say morning, afternoon, evening is not passed
-    current_date = datetime.now()
-    current_time = current_date.time()
-    current_date = current_date.strftime("%Y-%m-%d")
-
-    if date == current_date:
-        # Check if shift has already passed
-        if shift == "MORNING" and current_time.hour >= 12:
-            return JSONResponse({"error": "Morning shift has already passed"}, status_code=status.HTTP_400_BAD_REQUEST)
-        elif shift == "AFTERNOON" and current_time.hour >= 17:
-            return JSONResponse({"error": "Afternoon shift has already passed"}, status_code=status.HTTP_400_BAD_REQUEST) 
-        elif shift == "EVENING" and current_time.hour >= 22:
-            return JSONResponse({"error": "Evening shift has already passed"}, status_code=status.HTTP_400_BAD_REQUEST)
-    
-
-    ## check if the schedule already exists
-    existing_schedule = db.query(Schedule).filter(Schedule.date == date, Schedule.doctor_id == doctor_id, Schedule.clinic_id == clinic_id).first()
-    if existing_schedule:
-        return JSONResponse({"message": "Schedule modified successfully"})
-    
-    new_schedule = Schedule(
-        date=date,
-        doctor_id=doctor_id,
-        clinic_id=clinic_id,
-        time_slot=shift
-    )
-    db.add(new_schedule)
-    db.commit()
-    return JSONResponse({"message": "Schedule saved successfully"})
-
-@app.get("/api/schedule")
-async def get_schedule(request: Request, start: str, end: str, clinic_id: int, db: Session = Depends(get_db)):
-    schedule = db.query(Schedule).filter(Schedule.date >= start, Schedule.date <= end, Schedule.clinic_id == clinic_id).all()
-    return schedule
+app.include_router(api_router)
+app.include_router(admin_router)

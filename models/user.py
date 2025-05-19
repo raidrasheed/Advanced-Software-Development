@@ -14,3 +14,4 @@ class User(Base):
 
     appointments = relationship("Appointment", back_populates="patient")
     bookings = relationship("Booking", back_populates="patient")
+    doctor = relationship("Doctor", uselist=False, back_populates="user")

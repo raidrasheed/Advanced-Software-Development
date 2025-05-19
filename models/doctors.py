@@ -12,7 +12,9 @@ class Doctor(Base):
     experience = Column(Integer, nullable=False)  # Years of experience
     speciality = Column(String(100), nullable=False)
     description = Column(String(100), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     
+    user = relationship("User", back_populates="doctor")
     clinic = relationship("Clinic", back_populates="doctors")
     schedules = relationship("Schedule", back_populates="doctor")
     appointments = relationship("Appointment", foreign_keys="[Appointment.doctor_id]", back_populates="doctor")

@@ -11,3 +11,9 @@ CREATE TABLE `bookings` (
   KEY `room_id` (`room_id`),
   CONSTRAINT `bookings_ibfk_1` FOREIGN KEY (`room_id`) REFERENCES `rooms` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB AUTO_INCREMENT=16 DEFAULT CHARSET=utf8mb3;
+
+
+
+## update doctor table
+
+ALTER TABLE `island_dental`.`doctors` ADD FOREIGN KEY (`user_id`) REFERENCES `island_dental`.`users` (`id`);

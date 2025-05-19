@@ -163,7 +163,7 @@ document.getElementById('editDoctorForm').addEventListener('submit', async funct
     };
     
     if(id) {
-        await fetch(`/update-doctor/${id}`, {
+        await fetch(`/api/doctor/${id}`, {
             method: 'PUT',
             body: JSON.stringify(formData)
         })
