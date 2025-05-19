@@ -44,6 +44,33 @@
         </div>
     </div>
 
+    <!-- Confirm Requirements Modal -->
+    <div id="confirmRequirementsModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden overflow-y-auto h-full w-full">
+        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div class="mt-3">
+                <h3 class="text-lg font-medium leading-6 text-gray-900 mb-4">Additional Requirements</h3>
+                <div class="space-y-4">
+                    <div class="flex items-center">
+                        <input type="checkbox" id="surgeryRoom" class="mr-2">
+                        <label for="surgeryRoom" class="text-sm font-medium text-gray-700">Requires Surgery Room</label>
+                    </div>
+                    <div class="flex items-center">
+                        <input type="checkbox" id="admission" class="mr-2">
+                        <label for="admission" class="text-sm font-medium text-gray-700">Needs Admission</label>
+                    </div>
+                </div>
+            </div>
+            <div class="mt-5 flex justify-end space-x-2">
+                <button onclick="closeConfirmModal()" class="px-4 py-2 bg-gray-500 text-white text-base font-medium rounded-md shadow-sm hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-300">
+                    Cancel
+                </button>
+                <button onclick="confirmWithRequirements()" class="px-4 py-2 bg-green-500 text-white text-base font-medium rounded-md shadow-sm hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-300">
+                    Confirm
+                </button>
+            </div>
+        </div>
+    </div>
+
     <div class="overflow-x-auto">
         <table class="min-w-full bg-white shadow-lg rounded-lg overflow-hidden">
             <thead>
@@ -93,9 +120,9 @@
                             <button onclick="viewAppointment({{ appointment.id }})"  class="text-blue-500 hover:text-blue-700 px-2 py-0.5 text-sm rounded border border-blue-500 hover:bg-blue-50">View</button>
                             {% if appointment.status != 'CANCELLED' %}
                                 {% if user.role != 'CUSTOMER' %}
-                                    <button  onclick="appointmentAction({{ appointment.id }}, 'CONFIRMED')" class="text-green-500 hover:text-green-700 px-2 py-0.5 text-sm rounded border border-green-500 hover:bg-green-50">Confirm</button>
+                                    <button onclick="showConfirmModal({{ appointment.id }})" class="text-green-500 hover:text-green-700 px-2 py-0.5 text-sm rounded border border-green-500 hover:bg-green-50">Confirm</button>
                                 {% endif %}
-                            <button  onclick="appointmentAction({{ appointment.id }}, 'CANCELLED')" class="text-red-500 hover:text-red-700 px-2 py-0.5 text-sm rounded border border-red-500 hover:bg-red-50">Cancel</button>
+                            <button onclick="appointmentAction({{ appointment.id }}, 'CANCELLED')" class="text-red-500 hover:text-red-700 px-2 py-0.5 text-sm rounded border border-red-500 hover:bg-red-50">Cancel</button>
                             {% endif %}
                         </div>
                     </td>
@@ -109,6 +136,8 @@
 
 {% block scripts %}
 <script>
+    let currentAppointmentId = null;
+
     function appointmentAction(appointmentId, action) {
         fetch(`/api/appointments/${appointmentId}`, {
             method: 'POST',
@@ -122,6 +151,43 @@
         .then(response => response.json())
         .then(data => {
             console.log(data);
+            window.location.reload();
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
+    }
+
+    function showConfirmModal(appointmentId) {
+        currentAppointmentId = appointmentId;
+        document.getElementById('confirmRequirementsModal').classList.remove('hidden');
+    }
+
+    function closeConfirmModal() {
+        document.getElementById('confirmRequirementsModal').classList.add('hidden');
+        document.getElementById('surgeryRoom').checked = false;
+        document.getElementById('admission').checked = false;
+        currentAppointmentId = null;
+    }
+
+    function confirmWithRequirements() {
+        const requiresSurgery = document.getElementById('surgeryRoom').checked;
+        const requiresAdmission = document.getElementById('admission').checked;
+        
+        fetch(`/api/appointments/${currentAppointmentId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                status: 'CONFIRMED',
+                requires_surgery: requiresSurgery,
+                requires_admission: requiresAdmission
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            closeConfirmModal();
             window.location.reload();
         })
         .catch(error => {
@@ -145,10 +211,6 @@
         .catch(error => {
             console.error('Error:', error);
         });
-
-        console.log(appointment);
-
-        
     }
 
     function closeViewModal() {

@@ -13,3 +13,4 @@ class User(Base):
     role = Column(Enum('CUSTOMER','DOCTOR','ADMIN_OFFICER','MANAGER','ADMIN', name='user_role'), nullable=False)
 
     appointments = relationship("Appointment", back_populates="patient")
+    bookings = relationship("Booking", back_populates="patient")

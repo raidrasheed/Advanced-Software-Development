@@ -24,6 +24,7 @@ from models.schedule import Schedule
 from models.appointments import Appointment
 from models.pricing import Pricing
 from models.room import Room
+from models.bookings import Booking
 
 
 
@@ -184,9 +185,10 @@ def find_a_doctor(request: Request, db: Session = Depends(get_db)):
     location = request.session.get('location', "Male City")
     clinics = db.query(Clinic).filter(Clinic.location == location).first()
     doctors = db.query(Doctor).filter(Doctor.clinic_id == clinics.id).all()
-    return render_template(request, "find-a-doctor.html", {"request": request, "user": user, "clinics": clinics, "doctors": doctors})
+    all_doctors = db.query(Doctor).filter(Doctor.clinic_id != clinics.id).all()
+    return render_template(request, "find-a-doctor.html", {"request": request, "user": user, "clinics": clinics, "doctors": doctors, "all_doctors": all_doctors})
 
-
+    
 
 @app.post("/register")
 def register_post(
@@ -297,6 +299,18 @@ async def set_location(request: Request, db: Session = Depends(get_db)):
     
     return JSONResponse({"message": "Location updated successfully", "clinic_id": clinic_id})
 
+
+@app.get("/admin/bookings")
+def bookings(request: Request, db: Session = Depends(get_db)):
+    user = request.session.get("user")
+    if not user:
+        return RedirectResponse("/login")
+    
+    bookings = db.query(Booking).all()
+
+    
+    return render_template(request, "admin/bookings.html", {"request": request, "user": user, "bookings": bookings})
+
 @app.post("/book-appointment")
 async def book_appointment(request: Request, db: Session = Depends(get_db)):
     user = request.session.get("user")
@@ -311,14 +325,17 @@ async def book_appointment(request: Request, db: Session = Depends(get_db)):
     date = body.get("date")
     time = body.get("time")
     doctor_id = body.get("doctor_id")
+    requires_surgery = body.get("requires_surgery")
+    requires_admission = body.get("requires_admission")
 
-    print(service, date, time, doctor_id)
 
     ## get price from pricing table
     pricing = db.query(Pricing).filter(
         Pricing.service_id == service,
         Pricing.shift == getTimeSlot(time)
     ).first()
+
+
 
     if not pricing:
         return JSONResponse({"error": "Pricing not found"}, status_code=status.HTTP_404_NOT_FOUND)
@@ -329,12 +346,18 @@ async def book_appointment(request: Request, db: Session = Depends(get_db)):
     ## convert date to sql format YYYY-MM-DD
     sql_date = datetime.strptime(f"{date} {time}", "%m/%d/%Y %H:%M")
 
-    ## block any appointments that conflict with the new appointment
+    ## block any appointments that conflict with the new appointment also add max 10 appointments per doctor per date   
+
+    appointments = db.query(Appointment).filter(Appointment.doctor_id == doctor_id, Appointment.appointment_date == sql_date).count()
+    if appointments >= 10:
+        return JSONResponse({"error": "Doctor has reached the maximum number of appointments"}, status_code=status.HTTP_400_BAD_REQUEST)
+    
     conflicting_appointments = db.query(Appointment).filter(
         Appointment.doctor_id == doctor_id,
         Appointment.clinic_id == user.get("clinic_id"),
         Appointment.appointment_date == sql_date,
         Appointment.clinic_id == clinic.id,
+
         Appointment.time_slot == getTimeSlot(time)
     ).all()
 
@@ -351,11 +374,12 @@ async def book_appointment(request: Request, db: Session = Depends(get_db)):
         time_slot=getTimeSlot(time),
         appointment_date=sql_date,
         price=pricing.price,
-        status="pending",
+        status="PENDING",
         created_at=datetime.now()
     )
     db.add(new_appointment)
     db.commit()
+
     return JSONResponse({
         "data": "Appointment booked successfully",
         "status": "success"
@@ -459,7 +483,7 @@ def myaccount(request: Request, db: Session = Depends(get_db)):
     if not user:
         return RedirectResponse("/login")
     
-    appointments = db.query(Appointment).filter(Appointment.patient_id == user.get("id")).all()
+    appointments = db.query(Appointment).filter(Appointment.patient_id == user.get("id")).order_by(Appointment.id.desc()).all()
 
     return render_template(request, "myaccount.html", {"request": request, "user": user, "appointments": appointments})
 
@@ -546,15 +570,66 @@ def duty_roster(request: Request, db: Session = Depends(get_db), clinic_id: str 
 async def confirm_appointment(appointment_id: int, request: Request, db: Session = Depends(get_db)):
     data = await request.json()
     status = data.get("status")
+    requires_surgery = data.get("requires_surgery")
+    requires_admission = data.get("requires_admission")
+
     if not status:
-        return JSONResponse({"error": "Status is required"}, status_code=status.HTTP_400_BAD_REQUEST)
+        return JSONResponse(
+            {"error": "Status is required"}, 
+            status_code=status.HTTP_400_BAD_REQUEST
+        )
         
     appointment = db.query(Appointment).filter(Appointment.id == appointment_id).first()
     if not appointment:
-        return JSONResponse({"error": "Appointment not found"}, status_code=status.HTTP_404_NOT_FOUND)
+        return JSONResponse(
+            {"error": "Appointment not found"}, 
+            status_code=status.HTTP_404_NOT_FOUND
+        )
         
     appointment.status = status
     db.commit()
+
+    # Handle room booking
+    booking_date = appointment.appointment_date.strftime("%Y-%m-%d")
+    
+    # Get existing bookings for the day
+    bookings = db.query(Booking).filter(Booking.booking_date == booking_date).all()
+    
+    # Get room counts by type
+    room_counts = {
+        "surgery": sum(1 for b in bookings if db.query(Room).get(b.room_id).room_type == "surgery"),
+        "regular": sum(1 for b in bookings if db.query(Room).get(b.room_id).room_type == "regular")
+    }
+
+    # Determine required room type and validate availability
+    room_type = "surgery" if requires_surgery else "regular"
+    max_rooms = 1 if room_type == "surgery" else 2
+    
+    if room_counts[room_type] >= max_rooms:
+        error_msg = f"{'Surgery' if room_type == 'surgery' else 'Regular'} room{'s' if max_rooms > 1 else ''} already fully booked for the day"
+        return JSONResponse({"error": error_msg}, status_code=400)
+
+    # Find available room
+    available_room = db.query(Room).filter(
+        Room.room_type == room_type,
+        Room.id.notin_([b.room_id for b in bookings])
+    ).first()
+
+    if not available_room:
+        return JSONResponse(
+            {"error": f"No {room_type} rooms available"}, 
+            status_code=400
+        )
+
+    # Create new booking
+    new_booking = Booking(
+        room_id=available_room.id,
+        booking_date=booking_date,
+        patient_id=appointment.patient_id
+    )
+    db.add(new_booking)
+    db.commit()
+
     return JSONResponse({"message": "Appointment status updated successfully"})
 
 @app.post("/api/schedule")

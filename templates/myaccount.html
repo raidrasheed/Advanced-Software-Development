@@ -2,25 +2,26 @@
 
 {% block content %}
 <div class="max-w-7xl mx-auto px-4 py-12">
-  <div class="bg-white shadow rounded-lg p-6">
-    <div class="border-b pb-4 mb-6">
+  <div class="bg-white shadow rounded-lg p-6 border-b">
+    <div class="border-b pb-4 mb-6 flex items-center justify-between">
       <h1 class="text-3xl font-bold text-gray-900">My Account</h1>
+      <div class="">
+        <a onclick="alert('this feature not developed')" class="bg-blue-600 text-white px-4 py-2 rounded-md">Edit Profile</a>
+      </div>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-      <!-- Profile Info -->
-      <div class="bg-blue-50 p-6 rounded-lg">
-        <h2 class="text-xl font-semibold text-blue-900 mb-4">Profile Information</h2>
-        <div class="space-y-3">
+    <div class="relative">
+      <!-- Appointments -->
+      <div class="">
+        <h2 class="text-xl font-semibold text-blue-900 py-2 ">Profile Information</h2>
+        <div class="grid grid-cols-2 gap-2">
           <p><span class="font-medium">Name:</span> {{ user.full_name }}</p>
           <p><span class="font-medium">Email:</span> {{ user.email }}</p>
           <p><span class="font-medium">Contact:</span> {{ user.contact }}</p>
           <p><span class="font-medium">ID Number:</span> {{ user.identifier }}</p>
         </div>
       </div>
-
-      <!-- Appointments -->
-      <div class="md:col-span-2">
+      <div class="w-full mt-10">
         <h2 class="text-xl font-semibold text-gray-900 mb-4">My Appointments</h2>
         
         {% if appointments %}

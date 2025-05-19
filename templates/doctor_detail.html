@@ -260,16 +260,19 @@
 
         // devide divs with 20 minutes each
         renderSlots.innerHTML = '';
+        const currentTime = new Date();
+        const thirtyMinutesFromNow = new Date(currentTime.getTime() + (30 * 60000));
+
         for (let hour = start_time; hour < end_time; hour++) {
             for (let minute = 0; minute < 60; minute += 20) {
                 const timeObj = new Date(year, month, day, hour, minute);
                 const formattedTime = timeObj.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' , hour12: false });
                 const timeSlot = document.createElement('div');
 
-
                 const blocked = blockedTimes.find((time) => time === formattedTime);
+                const isPastTime = timeObj < thirtyMinutesFromNow && selectedDateObj.toDateString() === currentTime.toDateString();
 
-                if(blocked) {
+                if(blocked || isPastTime) {
                     timeSlot.classList.add('bg-gray-200');
                     timeSlot.classList.add('text-gray-400');
                 } else {

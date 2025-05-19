@@ -113,7 +113,15 @@ function addDoctor() {
     document.getElementById('editDoctorExperience').value = '';
 }
 
-function deleteDoctor(id) {
+async function deleteDoctor(id) {
+    let confirm = window.confirm('Are you sure you want to delete this doctor?');
+    if(confirm) {
+        await fetch(`/api/doctors/${id}`, {
+            method: 'DELETE'
+        })
+        window.location.reload();
+}
+
     // confirm the delete
     // let confirm = window.confirm('Are you sure you want to delete this doctor?');
     // if(confirm) {

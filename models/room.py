@@ -11,3 +11,4 @@ class Room(Base):
     room_number = Column(String(20))
 
     clinic = relationship("Clinic", back_populates="rooms")
+    bookings = relationship("Booking", back_populates="room")
