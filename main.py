@@ -563,8 +563,73 @@ def duty_roster(request: Request, db: Session = Depends(get_db), clinic_id: str 
         return RedirectResponse("/login")
     return render_template(request, "admin/duty_roster.html", {"request": request, "user": user, "doctors": doctors, "clinics": clinics, "clinic_id": clinic_id, "week_dates": week_dates})
 
+@app.get("/admin/manage")
+def manage(request: Request, db: Session = Depends(get_db)):
+    user = request.session.get("user")
+    if not user:
+        return RedirectResponse("/login")
+    
+    users = db.query(User).all()
+    return render_template(request, "admin/manage.html", {"request": request, "user": user, "users": users})
 
+@app.post("/api/users")
+async def add_user(request: Request, db: Session = Depends(get_db)):
+    data = await request.json()
+    ## user has to be admin
+    user = request.session.get("user")
+    if not user:
+        return JSONResponse({"error": "User not logged in"}, status_code=status.HTTP_401_UNAUTHORIZED)
+    if user['role'] != 'ADMIN':
+        return JSONResponse({"error": "You are not authorized to add this user"}, status_code=status.HTTP_403_FORBIDDEN)
 
+    user = User(
+        full_name=data.get("full_name"),
+        email=data.get("email"),
+        contact=data.get("contact"),
+        identifier=data.get("identifier"),
+        role=data.get("role"),
+        password=data.get("password")
+    )
+    db.add(user)
+    db.commit() 
+    return JSONResponse({"message": "User added successfully"})
+
+@app.put("/api/users/{user_id}")
+async def update_user(user_id: int, request: Request, db: Session = Depends(get_db)):
+    data = await request.json()
+    user = request.session.get("user")
+    if not user:
+        return JSONResponse({"error": "User not logged in"}, status_code=status.HTTP_401_UNAUTHORIZED)
+    if user['role'] != 'ADMIN':
+        return JSONResponse({"error": "You are not authorized to update this user"}, status_code=status.HTTP_403_FORBIDDEN)
+    
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        return JSONResponse({"error": "User not found"}, status_code=status.HTTP_404_NOT_FOUND)
+    
+    user.full_name = data.get("full_name")
+    user.email = data.get("email")
+    user.contact = data.get("contact")
+    user.identifier = data.get("identifier")
+    user.role = data.get("role")
+    db.commit()
+    return JSONResponse({"message": "User updated successfully"})
+
+@app.delete("/api/users/{user_id}")
+async def delete_user(user_id: int, request: Request, db: Session = Depends(get_db)):
+    user = request.session.get("user")
+    if not user:
+        return JSONResponse({"error": "User not logged in"}, status_code=status.HTTP_401_UNAUTHORIZED)
+    if user['role'] != 'ADMIN':
+        return JSONResponse({"error": "You are not authorized to delete this user"}, status_code=status.HTTP_403_FORBIDDEN)
+    
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        return JSONResponse({"error": "User not found"}, status_code=status.HTTP_404_NOT_FOUND)
+    db.delete(user)
+    db.commit()
+    return JSONResponse({"message": "User deleted successfully"})
+    
 ### API ROUTES
 @app.post("/api/appointments/{appointment_id}")
 async def confirm_appointment(appointment_id: int, request: Request, db: Session = Depends(get_db)):

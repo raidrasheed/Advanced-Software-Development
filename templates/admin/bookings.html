@@ -1,13 +1,13 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="max-w-7xl mx-auto px-4 py-12">
-    <div class="bg-white shadow rounded-lg p-6 border-b">
-        <h1 class="text-2xl font-bold text-gray-900">Bookings</h1>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-10">
+<div class="max-w-7xl mx-auto ">
+    <div class="bg-white shadow rounded-lg border-b">
+        <h1 class="text-2xl font-bold text-gray-900 border-b p-4">Bookings</h1>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-5">
             {% for booking in bookings %}
             <div class="bg-white shadow rounded-lg p-6">
-                <h2 class="text-lg font-bold text-gray-900">#Room: {{ booking.room.room_number }}</h2>
+                <h2 class="text-lg font-bold text-gray-900">Room: {{ booking.room.room_number }} ({{ booking.room.room_type.upper() }})</h2>
                 <p class="text-sm text-gray-500">Booking Date: {{ booking.booking_date }}</p>
                 <p class="text-sm text-gray-500">Patient: {{ booking.patient.full_name }}</p>
                 <p class="text-sm text-gray-500">Email: {{ booking.patient.email }}</p>
