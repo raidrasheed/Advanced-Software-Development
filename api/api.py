@@ -134,7 +134,7 @@ async def update_user(user_id: int, request: Request, db: Session = Depends(get_
     user = request.session.get("user")
     if not user:
         return JSONResponse({"error": "User not logged in"}, status_code=status.HTTP_401_UNAUTHORIZED)
-    if user['role'] != 'ADMIN':
+    if user['role'] != 'ADMIN' or user['id'] != user_id:
         return JSONResponse({"error": "You are not authorized to update this user"}, status_code=status.HTTP_403_FORBIDDEN)
     
     user = db.query(User).filter(User.id == user_id).first()
@@ -145,7 +145,9 @@ async def update_user(user_id: int, request: Request, db: Session = Depends(get_
     user.email = data.get("email")
     user.contact = data.get("contact")
     user.identifier = data.get("identifier")
-    user.role = data.get("role")
+
+    if user['role'] == 'ADMIN' or user['role'] == 'MANAGER':
+        user.role = data.get("role")
     
     db.commit()
 
@@ -239,6 +241,27 @@ async def confirm_appointment(appointment_id: int, request: Request, db: Session
     db.commit()
 
     return JSONResponse({"message": "Appointment status updated successfully"})
+
+@api_router.post("/api/appointments/cancel/{appointment_id}")
+async def cancel_appointment(appointment_id: int, request: Request, db: Session = Depends(get_db)):
+
+    user = request.session.get("user")
+    appointment = db.query(Appointment).filter(Appointment.id == appointment_id).first()
+
+    if not appointment:
+        return JSONResponse({"error": "Appointment not found"}, status_code=status.HTTP_404_NOT_FOUND)
+
+    if not user:
+        return JSONResponse({"error": "User not logged in"}, status_code=status.HTTP_401_UNAUTHORIZED)
+    if user['id'] != appointment.patient_id:
+        return JSONResponse({"error": "You are not authorized to cancel this appointment"}, status_code=status.HTTP_403_FORBIDDEN)
+
+    if appointment.status == "CANCELLED":
+        return JSONResponse({"error": "Appointment already cancelled"}, status_code=status.HTTP_400_BAD_REQUEST)
+    
+    appointment.status = "CANCELLED"
+    db.commit()
+    return JSONResponse({"message": "Appointment cancelled successfully"})
 
 @api_router.post("/api/schedule")
 async def save_schedule(request: Request, db: Session = Depends(get_db)):

@@ -335,9 +335,12 @@ def myaccount(request: Request, db: Session = Depends(get_db)):
     if not user:
         return RedirectResponse("/login")
     
+    date = datetime.now()
+
+    profile = db.query(User).filter(User.id == user.get("id")).first()
     appointments = db.query(Appointment).filter(Appointment.patient_id == user.get("id")).order_by(Appointment.id.desc()).all()
 
-    return render_template(request, "myaccount.html", {"request": request, "user": user, "appointments": appointments})
+    return render_template(request, "myaccount.html", {"request": request, "user": user, "appointments": appointments, "profile": profile, "date": date})
 
 
 app.include_router(api_router)
