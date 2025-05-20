@@ -1,9 +1,58 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="flex flex-col gap-4">
+<div class="flex flex-col gap-6">
     <div class="flex flex-col gap-4">
         <h1 class="text-2xl font-bold">Dashboard</h1>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="bg-white p-6 rounded-lg shadow">
+            <h3 class="text-lg font-semibold mb-2">Total Appointments</h3>
+            <p class="text-3xl font-bold">{{ total_appointments }}</p>
+        </div>
+        <div class="bg-white p-6 rounded-lg shadow">
+            <h3 class="text-lg font-semibold mb-2">Pending Appointments</h3>
+            <p class="text-3xl font-bold">{{ pending_appointments }}</p>
+        </div>
+        <div class="bg-white p-6 rounded-lg shadow">
+            <h3 class="text-lg font-semibold mb-2">Completed Appointments</h3>
+            <p class="text-3xl font-bold">{{ completed_appointments }}</p>
+        </div>
+        <div class="bg-white p-6 rounded-lg shadow">
+            <h3 class="text-lg font-semibold mb-2">Total Doctors</h3>
+            <p class="text-3xl font-bold">{{ total_doctors }}</p>
+        </div>
+    </div>
+
+    <!-- Distribution Charts -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Clinic Appointments -->
+        <div class="bg-white p-6 rounded-lg shadow">
+            <h3 class="text-lg font-semibold mb-4">Appointments by Clinic</h3>
+            <div class="space-y-3">
+                {% for clinic in clinic_appointments %}
+                <div class="flex justify-between items-center">
+                    <span class="text-gray-700">{{ clinic.name }}</span>
+                    <span class="font-semibold">{{ clinic.count }}</span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Doctor Workload -->
+        <div class="bg-white p-6 rounded-lg shadow">
+            <h3 class="text-lg font-semibold mb-4">Doctor Workload</h3>
+            <div class="space-y-3">
+                {% for doctor in doctor_appointments %}
+                <div class="flex justify-between items-center">
+                    <span class="text-gray-700">{{ doctor.full_name }}</span>
+                    <span class="font-semibold">{{ doctor.count }}</span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
     </div>
 </div>
 {% endblock %}

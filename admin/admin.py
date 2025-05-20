@@ -23,13 +23,50 @@ def get_db():
 admin_router = APIRouter()
 
 @admin_router.get("/admin")
-def dashboard(request: Request):
-    user = request.session.get("user") 
+def dashboard(request: Request, db: Session = Depends(get_db)):
+    user = request.session.get("user")
     if user and user['role'] == 'CUSTOMER':
         return RedirectResponse("/")
-    # if not user:
-    #     return RedirectResponse("/login")
-    return render_template(request, "admin/dashboard.html", {"request": request, "user": user})
+    if not user:
+        return RedirectResponse("/login")
+
+    # Get appointment statistics
+    total_appointments = db.query(Appointment).count()
+    pending_appointments = db.query(Appointment).filter(Appointment.status == "PENDING").count()
+    completed_appointments = db.query(Appointment).filter(Appointment.status == "COMPLETED").count()
+
+    # Get user statistics
+    total_patients = db.query(User).filter(User.role == "CUSTOMER").count()
+    total_doctors = db.query(Doctor).count()
+    
+    # Get appointment distribution by clinic
+    from sqlalchemy import func
+    clinic_appointments = db.query(
+        Clinic.name,
+        func.count(Appointment.id).label('count')
+    ).join(Appointment).group_by(Clinic.name).all()
+
+    # Get doctor workload
+    doctor_appointments = db.query(
+        Doctor.full_name,
+        func.count(Appointment.id).label('count')
+    ).join(Appointment).group_by(Doctor.full_name).all()
+
+    return render_template(
+        request, 
+        "admin/dashboard.html",
+        {
+            "request": request,
+            "user": user,
+            "total_appointments": total_appointments,
+            "pending_appointments": pending_appointments,
+            "completed_appointments": completed_appointments,
+            "total_patients": total_patients,
+            "total_doctors": total_doctors,
+            "clinic_appointments": clinic_appointments,
+            "doctor_appointments": doctor_appointments
+        }
+    )
 
 @admin_router.get("/admin/doctors")
 def doctors(request: Request, db: Session = Depends(get_db)):
