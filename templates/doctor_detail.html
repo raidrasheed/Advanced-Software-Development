@@ -329,9 +329,6 @@
         steps.forEach((step, index) => {
             step.classList.toggle('hidden', index !== stepIndex);
         });
-        // prevButton.classList.toggle('hidden', stepIndex === 0);
-        // nextButton.classList.toggle('hidden', stepIndex === steps.length - 1);
-        // submitButton.classList.toggle('hidden', stepIndex !== steps.length - 1);
     }
 
     nextButton.addEventListener('click', () => {
@@ -347,8 +344,6 @@
             }
             console.log(serviceType);
         }
-        // currentStep++;
-        // showStep(currentStep);
     });
 
     prevButton.addEventListener('click', () => {
@@ -358,36 +353,54 @@
 
     showStep(currentStep);
 
-    function submitForm() {
+    async function submitForm() {
+        // Simulate payment processing
+        const loadingMessage = document.createElement('div');
+        loadingMessage.innerHTML = `
+            <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                <div class="bg-white p-6 rounded-lg text-center">
+                    <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+                    <p class="text-lg">Processing payment...</p>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(loadingMessage);
 
-        const data = {
-            service: confirmService.textContent,
-            date: selectedDate,
-            time: selectedTimeSlot,
-            doctor_id: doctor_id,
-        }
+        try {
+            // Simulate payment processing delay
+            await new Promise(resolve => setTimeout(resolve, 2000));
 
-        fetch('/book-appointment', {
-            method: 'POST',
-            body: JSON.stringify(data),
-        })
-        .then(response => response.json())
-        .then(data => {
-            if(data.status === 'success') {
+            const data = {
+                service: confirmService.textContent,
+                date: selectedDate,
+                time: selectedTimeSlot,
+                doctor_id: doctor_id,
+            }
+
+            const response = await fetch('/book-appointment', {
+                method: 'POST',
+                body: JSON.stringify(data),
+            });
+
+            const result = await response.json();
+
+            document.body.removeChild(loadingMessage);
+
+            if(result.status === 'success') {
+                alert('Payment successful! Your appointment has been booked.');
                 closeModal();
                 renderCalendar();
             } else {
-                alert('Appointment booking failed');
+                alert('Payment failed. Please try again.');
             }
-        })
-        .catch(error => {
-            console.error('Error booking appointment:', error);
-        });
+        } catch (error) {
+            document.body.removeChild(loadingMessage);
+            console.error('Error processing payment:', error);
+            alert('Payment processing failed. Please try again.');
+        }
     }
-    function nextStep() {
- 
 
-        
+    function nextStep() {
         if(currentStep === 0) {
             const serviceType = document.getElementById('service_type').value;
             if(confirmService) {
