@@ -9,7 +9,9 @@ from models.clinics import Clinic
 from passlib.hash import bcrypt
 from models.appointments import Appointment
 from models.bookings import Booking
-from utils.func import week_dates, render_template
+from utils.func import week_dates, render_template, requires_roles  
+from utils.func import MANAGER, ADMIN,CUSTOMER
+
 
 def get_db():
     db = SessionLocal()
@@ -93,7 +95,7 @@ def duty_roster(request: Request, db: Session = Depends(get_db), clinic_id: str 
         doctor = db.query(Doctor).filter(Doctor.user_id == user['id']).first()
         doctors = [{"id": doctor.id, "full_name": doctor.full_name}]
     else:
-        doctors = [{"id": doctor.id, "full_name": doctor.full_name} for doctor in db.query(Doctor).all()]
+        doctors = [{"id": doctor.id, "full_name": doctor.full_name} for doctor in db.query(Doctor).filter(Doctor.clinic_id == clinic_id).all()]
     
     clinics = db.query(Clinic).all()
     
@@ -121,3 +123,12 @@ def bookings(request: Request, db: Session = Depends(get_db)):
     
     bookings = db.query(Booking).all()
     return render_template(request, "admin/bookings.html", {"request": request, "user": user, "bookings": bookings})
+
+@admin_router.get("/admin/clinics")
+@requires_roles(MANAGER,ADMIN)
+def clinics(request: Request, db: Session = Depends(get_db)):
+    user = request.session.get("user")
+    if not user:
+        return RedirectResponse("/login")
+    clinics = db.query(Clinic).all()
+    return render_template(request, "admin/clinics.html", {"request": request, "user": user, "clinics": clinics })

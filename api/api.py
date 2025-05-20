@@ -12,7 +12,7 @@ from models.bookings import Booking
 from models.room import Room
 from models.schedule import Schedule
 from models.user import User
-from utils.func import get_db, requires_roles, ADMIN, MANAGER
+from utils.func import get_db, requires_roles, ADMIN, MANAGER, CUSTOMER
 api_router = APIRouter()
 
 # Add /api routes here 
@@ -127,11 +127,11 @@ async def update_doctor(doctor_id: int, request: Request, db: Session = Depends(
 
 
 ## USER ROUTES
-@requires_roles(ADMIN, MANAGER)
+@requires_roles(ADMIN, MANAGER, CUSTOMER)
 @api_router.put("/api/users/{user_id}")
 async def update_user(user_id: int, request: Request, db: Session = Depends(get_db)):
     data = await request.json()
-    user = request.session.get("user")
+    
     session_user = db.query(User).filter(User.id == user_id).first()    
     session_user.full_name = data.get("full_name")
     session_user.email = data.get("email")
@@ -142,7 +142,6 @@ async def update_user(user_id: int, request: Request, db: Session = Depends(get_
 
     if data.get("user_id"):
         doctor_id = data.get("user_id")
-        ## update doctor add user_id to doctor
         doctor = db.query(Doctor).filter(Doctor.id == doctor_id).first()
         doctor.user_id = session_user.id
         db.commit()
@@ -344,3 +343,48 @@ async def add_user(request: Request, db: Session = Depends(get_db)):
     return JSONResponse({"message": "User added successfully"})
 
 
+@api_router.post("/api/clinics/add")
+async def add_clinic(request: Request, db: Session = Depends(get_db)):
+    user = request.session.get("user")
+    if not user:
+        return RedirectResponse("/login")
+    
+    if user['role'] != 'ADMIN':
+        return JSONResponse({"error": "You are not authorized to add this clinic"}, status_code=status.HTTP_403_FORBIDDEN)   
+    
+    data = await request.form()
+    clinic_name = data.get("clinic_name")
+    clinic_location = data.get("clinic_location")
+
+    clinic = Clinic(
+        name=clinic_name,
+        location=clinic_location,
+        is_active=data.get("is_active")
+    )
+
+    db.add(clinic)
+    db.commit()
+    db.refresh(clinic)
+    
+    return JSONResponse({"message": "Clinic added successfully"})
+
+@api_router.put("/api/clinics/{clinic_id}/update")
+async def update_clinic(clinic_id: int, request: Request, db: Session = Depends(get_db)):
+    user = request.session.get("user")
+    if not user:
+        return JSONResponse({"error": "User not logged in"}, status_code=status.HTTP_401_UNAUTHORIZED)
+    
+    if user['role'] != 'ADMIN':
+        return JSONResponse({"error": "You are not authorized to update this clinic"}, status_code=status.HTTP_403_FORBIDDEN)
+
+    data = await request.json()
+    clinic = db.query(Clinic).filter(Clinic.id == clinic_id).first()
+    if not clinic:
+        return JSONResponse({"error": "Clinic not found"}, status_code=status.HTTP_404_NOT_FOUND)
+
+    clinic.name = data.get("clinic_name")
+    clinic.location = data.get("clinic_location")
+    clinic.is_active = data.get("is_active")
+    
+    db.commit()
+    return JSONResponse({"message": "Clinic updated successfully"})

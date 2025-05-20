@@ -8,6 +8,7 @@ from passlib.hash import bcrypt
 from functools import wraps
 from fastapi import status
 from fastapi.responses import JSONResponse
+import inspect
 
 
 # Role constants
@@ -95,17 +96,18 @@ def requires_roles(*allowed_roles):
                     status_code=status.HTTP_401_UNAUTHORIZED
                 )
 
-            # Lookup user from DB
             session_user = db.query(User).filter(User.id == user_data["id"]).first()
-
             if not session_user or session_user.role not in allowed_roles:
                 return JSONResponse(
                     {"error": "You are not authorized to perform this action"},
                     status_code=status.HTTP_403_FORBIDDEN
                 )
 
-            # Pass user if needed
-            return await func(request, db, session_user, *args, **kwargs)
+            # Check if func is coroutine or not
+            if inspect.iscoroutinefunction(func):
+                return await func(request, db, *args, **kwargs)
+            else:
+                return func(request, db, *args, **kwargs)
 
         return wrapper
     return decorator

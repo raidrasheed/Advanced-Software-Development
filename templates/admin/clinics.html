@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+
+{% block title %}Clinics{% endblock %}
+
+{% block content %}
+<div class="flex justify-between items-center mb-6">
+    <h1 class="text-2xl font-bold text-gray-900">Clinics</h1>
+    {% if user.role == 'ADMIN' %}
+    <button onclick="openClinicModal()" class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600">
+        Add Clinic
+    </button>
+    {% endif %}
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    {% for clinic in clinics %}
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-2">{{clinic.name}}</h3>
+        <div class="text-gray-600 space-y-2">
+            <p><span class="font-medium">Location:</span> {{clinic.location}}</p>
+        </div>
+        {% if user.role == 'ADMIN' %}
+        <div class="mt-4 flex gap-2">
+            <button onclick="openClinicModal({{clinic.id}}, '{{clinic.name}}', '{{clinic.location}}', {{clinic.is_active}})" class="bg-yellow-500 text-white px-3 py-1 rounded hover:bg-yellow-600">
+                Edit
+            </button>
+            <button onclick="deleteClinic({{clinic.id}})" class="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600">
+                Delete
+            </button>
+        </div>
+        {% endif %}
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Clinic Modal -->
+<div id="clinicModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden">
+    <div class="flex items-center justify-center min-h-screen">
+        <div class="bg-white w-full max-w-md p-6 rounded-lg">
+            <h2 id="modalTitle" class="text-xl font-bold mb-4">Add New Clinic</h2>
+            <form id="clinicForm" method="POST" action="/admin/clinics/add">
+                <input type="hidden" id="clinicId" name="clinic_id">
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Clinic Name</label>
+                        <input type="text" id="clinicName" name="clinic_name" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Location</label>
+                        <input type="text" id="clinicLocation" name="clinic_location" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                    </div>
+                </div>
+                <div class="mt-6 flex justify-end gap-3">
+                    <button type="button" onclick="closeClinicModal()" class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200">
+                        Cancel
+                    </button>
+                    <button type="submit" id="submitBtn" class="px-4 py-2 text-sm font-medium text-white bg-blue-500 rounded-md hover:bg-blue-600">
+                        Add Clinic
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function openClinicModal(id = null, name = '', location = '', isActive = true) {
+    const modal = document.getElementById('clinicModal');
+    const form = document.getElementById('clinicForm');
+    const title = document.getElementById('modalTitle');
+    const submitBtn = document.getElementById('submitBtn');
+
+    form.onsubmit = async (e) => {
+        e.preventDefault();
+        
+        const formData = {
+            clinic_name: document.getElementById('clinicName').value,
+            clinic_location: document.getElementById('clinicLocation').value, 
+            is_active: document.getElementById('clinicStatus').value === 'true'
+        };
+
+        try {
+            const url = id ? `/api/clinics/${id}/update` : '/api/clinics/add';
+            const response = await fetch(url, {
+                method: id ? 'PUT' : 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(formData)
+            });
+
+            if (response.ok) {
+                window.location.reload();
+            } else {
+                alert('Failed to save clinic');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('An error occurred while saving the clinic');
+        }
+    };
+    
+    if (id) {
+        title.textContent = 'Edit Clinic';
+        submitBtn.textContent = 'Update Clinic';
+        document.getElementById('clinicId').value = id;
+        document.getElementById('clinicName').value = name;
+        document.getElementById('clinicLocation').value = location;
+        document.getElementById('clinicStatus').value = isActive;
+    } else {
+        title.textContent = 'Add New Clinic';
+        submitBtn.textContent = 'Add Clinic';
+        form.reset();
+    }
+    
+    modal.classList.remove('hidden');
+}
+
+function closeClinicModal() {
+    document.getElementById('clinicModal').classList.add('hidden');
+}
+
+async function deleteClinic(clinicId) {
+    if (!confirm('Are you sure you want to delete this clinic?')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/clinics/${clinicId}`, {
+            method: 'DELETE'
+        });
+        
+        if (response.ok) {
+            window.location.reload();
+        } else {
+            alert('Failed to delete clinic');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('An error occurred while deleting the clinic');
+    }
+}
+</script>
+{% endblock %}
