@@ -5,7 +5,17 @@ from database import SessionLocal
 from models.user import User
 from sqlalchemy.orm import Session
 from passlib.hash import bcrypt
+from functools import wraps
+from fastapi import status
+from fastapi.responses import JSONResponse
 
+
+# Role constants
+ADMIN = "ADMIN"
+MANAGER = "MANAGER"
+OFFICER = "OFFICER"
+DOCTOR = "DOCTOR"
+CUSTOMER = "CUSTOMER"
 
 templates = Jinja2Templates(directory="templates")
 
@@ -73,3 +83,29 @@ def render_template(request: Request, template_name: str, context: dict = None):
     return templates.TemplateResponse(template_name, context)
 
 
+
+def requires_roles(*allowed_roles):
+    def decorator(func):
+        @wraps(func)
+        async def wrapper(request: Request, db, *args, **kwargs):
+            user_data = request.session.get("user")
+            if not user_data:
+                return JSONResponse(
+                    {"error": "Not authenticated"},
+                    status_code=status.HTTP_401_UNAUTHORIZED
+                )
+
+            # Lookup user from DB
+            session_user = db.query(User).filter(User.id == user_data["id"]).first()
+
+            if not session_user or session_user.role not in allowed_roles:
+                return JSONResponse(
+                    {"error": "You are not authorized to perform this action"},
+                    status_code=status.HTTP_403_FORBIDDEN
+                )
+
+            # Pass user if needed
+            return await func(request, db, session_user, *args, **kwargs)
+
+        return wrapper
+    return decorator

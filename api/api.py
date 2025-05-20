@@ -12,7 +12,7 @@ from models.bookings import Booking
 from models.room import Room
 from models.schedule import Schedule
 from models.user import User
-from utils.func import get_db
+from utils.func import get_db, requires_roles, ADMIN, MANAGER
 api_router = APIRouter()
 
 # Add /api routes here 
@@ -127,35 +127,24 @@ async def update_doctor(doctor_id: int, request: Request, db: Session = Depends(
 
 
 ## USER ROUTES
-
+@requires_roles(ADMIN, MANAGER)
 @api_router.put("/api/users/{user_id}")
 async def update_user(user_id: int, request: Request, db: Session = Depends(get_db)):
     data = await request.json()
     user = request.session.get("user")
-    if not user:
-        return JSONResponse({"error": "User not logged in"}, status_code=status.HTTP_401_UNAUTHORIZED)
-    if user['role'] != 'ADMIN' or user['id'] != user_id:
-        return JSONResponse({"error": "You are not authorized to update this user"}, status_code=status.HTTP_403_FORBIDDEN)
-    
-    user = db.query(User).filter(User.id == user_id).first()
-    if not user:
-        return JSONResponse({"error": "User not found"}, status_code=status.HTTP_404_NOT_FOUND)
-    
-    user.full_name = data.get("full_name")
-    user.email = data.get("email")
-    user.contact = data.get("contact")
-    user.identifier = data.get("identifier")
+    session_user = db.query(User).filter(User.id == user_id).first()    
+    session_user.full_name = data.get("full_name")
+    session_user.email = data.get("email")
+    session_user.contact = data.get("contact")
+    session_user.identifier = data.get("identifier")
 
-    if user['role'] == 'ADMIN' or user['role'] == 'MANAGER':
-        user.role = data.get("role")
-    
     db.commit()
 
     if data.get("user_id"):
         doctor_id = data.get("user_id")
         ## update doctor add user_id to doctor
         doctor = db.query(Doctor).filter(Doctor.id == doctor_id).first()
-        doctor.user_id = user.id
+        doctor.user_id = session_user.id
         db.commit()
 
     return JSONResponse({"message": "User updated successfully"})
