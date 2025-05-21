@@ -11,11 +11,11 @@ class Booking(Base):
     booking_date = Column(Date, nullable=False)
     patient_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     created_at = Column(DateTime, server_default=func.now())
-
+    clinic_id = Column(Integer, ForeignKey("clinics.id", ondelete="CASCADE"), nullable=False)
     # Relationships
     room = relationship("Room", back_populates="bookings")
     patient = relationship("User", back_populates="bookings")
-
+    clinic = relationship("Clinic", back_populates="bookings")
     # Unique constraint to ensure room is only booked once per day
     __table_args__ = (
         UniqueConstraint('room_id', 'booking_date', name='unique_room_date'),

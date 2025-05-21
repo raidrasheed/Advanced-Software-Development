@@ -167,17 +167,23 @@
             dayCell.className = 'p-2 rounded hover:bg-gray-200 text-center cursor-pointer';
             grid.appendChild(dayCell);
 
-            if(day === date.getDate() && month === new Date().getMonth() && year === new Date().getFullYear()) {
+            const dayDate = new Date(year, month, day);
+            const today = new Date();
+            today.setHours(0,0,0,0);
+
+            if(dayDate.getTime() === today.getTime()) {
                 dayCell.classList.add('bg-blue-200');
             }
-            if(day < date.getDate() && month === new Date().getMonth() && year === new Date().getFullYear()) {
+            
+            if(dayDate < today) {
                 dayCell.classList.add('bg-gray-50');
                 dayCell.classList.add('disabled');
                 dayCell.classList.add('text-gray-200');
+                dayCell.classList.remove('hover:bg-gray-200');
+                dayCell.classList.add('cursor-not-allowed');
             }
 
             // Check if the day falls on a Friday
-            const dayDate = new Date(year, month, day);
             if (dayDate.toLocaleDateString('en-US', { weekday: 'short' }) === 'Fri') {
                 dayCell.classList.add('disabled');
                 dayCell.classList.add('text-gray-200');
@@ -185,16 +191,15 @@
                 dayCell.classList.remove('hover:bg-gray-200');
             }
 
-            /// auto click current date 
-            if(day === new Date().getDate() && month === new Date().getMonth() && year === new Date().getFullYear()) {
+            // auto click current date if it's today
+            if(dayDate.getTime() === today.getTime()) {
                 await getCalandarDate(day);
             }
 
             dayCell.addEventListener('click', async () => {
-                // Check if it's a Friday before processing click
-                const clickedDate = new Date(year, month, day);
-                if (clickedDate.toLocaleDateString('en-US', { weekday: 'short' }) === 'Fri') {
-                    return; // Don't process click for Fridays
+                // Don't process click for disabled dates
+                if(dayCell.classList.contains('disabled')) {
+                    return;
                 }
 
                 const allDays = grid.querySelectorAll('div');
@@ -226,7 +231,6 @@
 
         const schedules = await checkSchedule(doctor_id, sqlFormated);
 
-
         if (schedules === null) {
             slotErrors.innerHTML = `<div class="text-red-500">No available slots for this date</div>`;
             return;
@@ -254,9 +258,12 @@
 
         for (let i = 0; i < appointments.length; i++) {
             const appointment = appointments[i];
-
-            blockedTimes.push(appointment?.time);
+            blockedTimes.push({
+                date: appointment.date,
+                time: appointment.time,
+            });
         }
+
 
         // devide divs with 20 minutes each
         renderSlots.innerHTML = '';
@@ -266,10 +273,14 @@
         for (let hour = start_time; hour < end_time; hour++) {
             for (let minute = 0; minute < 60; minute += 20) {
                 const timeObj = new Date(year, month, day, hour, minute);
-                const formattedTime = timeObj.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' , hour12: false });
+                const formattedTime = timeObj.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+                const formattedMonth = String(sMonth).padStart(2, '0');
+                const sqlFormated = `${sYear}-${formattedMonth}-${sDay}`;
                 const timeSlot = document.createElement('div');
+                const blocked = blockedTimes.find(time => 
+                    time.time === formattedTime && time.date === sqlFormated
+                );
 
-                const blocked = blockedTimes.find((time) => time === formattedTime);
                 const isPastTime = timeObj < thirtyMinutesFromNow && selectedDateObj.toDateString() === currentTime.toDateString();
 
                 if(blocked || isPastTime) {

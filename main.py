@@ -113,6 +113,7 @@ def check_schedule(request: Request, doctor_id: int, db: Session = Depends(get_d
         "appointments": [
             {
                 "id": appointment.id,
+                "date": appointment.appointment_date.strftime("%Y-%m-%d"),
                 "time": appointment.appointment_date.strftime("%H:%M"),
             } for appointment in schedules.appointments
         ] if schedules.appointments else []

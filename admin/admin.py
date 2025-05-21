@@ -11,7 +11,7 @@ from models.appointments import Appointment
 from models.bookings import Booking
 from utils.func import week_dates, render_template, requires_roles  
 from utils.func import MANAGER, ADMIN,CUSTOMER
-
+from datetime import datetime
 
 def get_db():
     db = SessionLocal()
@@ -31,7 +31,7 @@ def dashboard(request: Request, db: Session = Depends(get_db)):
         return RedirectResponse("/login")
 
     # Get appointment statistics
-    total_appointments = db.query(Appointment).count()
+    total_appointments = db.query(Appointment).filter(Appointment.status != "CANCELLED",Appointment.appointment_date >= datetime.now()).count()
     pending_appointments = db.query(Appointment).filter(Appointment.status == "PENDING").count()
     completed_appointments = db.query(Appointment).filter(Appointment.status == "COMPLETED").count()
 
@@ -162,7 +162,7 @@ def bookings(request: Request, db: Session = Depends(get_db)):
     return render_template(request, "admin/bookings.html", {"request": request, "user": user, "bookings": bookings})
 
 @admin_router.get("/admin/clinics")
-@requires_roles(MANAGER,ADMIN)
+@requires_roles(MANAGER)
 def clinics(request: Request, db: Session = Depends(get_db)):
     user = request.session.get("user")
     if not user:

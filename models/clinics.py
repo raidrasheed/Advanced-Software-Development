@@ -11,3 +11,5 @@ class Clinic(Base):
     doctors = relationship("Doctor", back_populates="clinic")
     schedules = relationship("Schedule", back_populates="clinic")
     appointments = relationship("Appointment", back_populates="clinic")
+    
+    bookings = relationship("Booking", back_populates="clinic")

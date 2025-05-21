@@ -204,7 +204,7 @@
             document.getElementById('modal-service').textContent = appointment.service_type;
             document.getElementById('modal-patient').textContent = appointment.patient_name;
             document.getElementById('modal-datetime').textContent = `${appointment.appointment_date} ${appointment.time}`;
-            document.getElementById('modal-doctor').textContent = appointment.doctor_name;
+            document.getElementById('modal-doctor').textContent = appointment.doctor;
             document.getElementById('modal-status').textContent = appointment.status;
             document.getElementById('viewAppointmentModal').classList.remove('hidden');
         })

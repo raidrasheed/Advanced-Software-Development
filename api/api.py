@@ -195,8 +195,8 @@ async def confirm_appointment(appointment_id: int, request: Request, db: Session
     
     # Get room counts by type
     room_counts = {
-        "surgery": sum(1 for b in bookings if db.query(Room).get(b.room_id).room_type == "surgery"),
-        "regular": sum(1 for b in bookings if db.query(Room).get(b.room_id).room_type == "regular")
+        "surgery": sum(1 for b in bookings if db.query(Room).get(b.room_id).room_type == "surgery" and b.clinic_id == appointment.clinic_id),
+        "regular": sum(1 for b in bookings if db.query(Room).get(b.room_id).room_type == "regular" and b.clinic_id == appointment.clinic_id)
     }
 
     # Determine required room type and validate availability
@@ -222,6 +222,7 @@ async def confirm_appointment(appointment_id: int, request: Request, db: Session
     # Create new booking
     new_booking = Booking(
         room_id=available_room.id,
+        clinic_id=appointment.clinic_id,
         booking_date=booking_date,
         patient_id=appointment.patient_id
     )
