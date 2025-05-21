@@ -350,17 +350,25 @@ async def add_clinic(request: Request, db: Session = Depends(get_db)):
     if not user:
         return RedirectResponse("/login")
     
-    if user['role'] != 'ADMIN':
+    if user['role'] != 'MANAGER':
         return JSONResponse({"error": "You are not authorized to add this clinic"}, status_code=status.HTTP_403_FORBIDDEN)   
-    
-    data = await request.form()
+    data = await request.json()
     clinic_name = data.get("clinic_name")
     clinic_location = data.get("clinic_location")
+    is_active = data.get("is_active")
+
+    if is_active == "true":
+        is_active = True
+    else:
+        is_active = False
+
+    if not clinic_name or not clinic_location:
+        return JSONResponse({"error": "Clinic name and location are required"}, status_code=status.HTTP_400_BAD_REQUEST)
 
     clinic = Clinic(
         name=clinic_name,
         location=clinic_location,
-        is_active=data.get("is_active")
+        is_active=is_active
     )
 
     db.add(clinic)
@@ -375,7 +383,7 @@ async def update_clinic(clinic_id: int, request: Request, db: Session = Depends(
     if not user:
         return JSONResponse({"error": "User not logged in"}, status_code=status.HTTP_401_UNAUTHORIZED)
     
-    if user['role'] != 'ADMIN':
+    if user['role'] != 'MANAGER':
         return JSONResponse({"error": "You are not authorized to update this clinic"}, status_code=status.HTTP_403_FORBIDDEN)
 
     data = await request.json()

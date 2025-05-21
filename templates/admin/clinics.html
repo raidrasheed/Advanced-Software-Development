@@ -5,7 +5,7 @@
 {% block content %}
 <div class="flex justify-between items-center mb-6">
     <h1 class="text-2xl font-bold text-gray-900">Clinics</h1>
-    {% if user.role == 'ADMIN' %}
+    {% if user.role == 'MANAGER' %}
     <button onclick="openClinicModal()" class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600">
         Add Clinic
     </button>
@@ -19,9 +19,9 @@
         <div class="text-gray-600 space-y-2">
             <p><span class="font-medium">Location:</span> {{clinic.location}}</p>
         </div>
-        {% if user.role == 'ADMIN' %}
+        {% if user.role == 'MANAGER' %}
         <div class="mt-4 flex gap-2">
-            <button onclick="openClinicModal({{clinic.id}}, '{{clinic.name}}', '{{clinic.location}}', {{clinic.is_active}})" class="bg-yellow-500 text-white px-3 py-1 rounded hover:bg-yellow-600">
+            <button onclick="openClinicModal({{clinic.id}}, '{{clinic.name}}', '{{clinic.location}}', '{{clinic.is_active}}')" class="bg-yellow-500 text-white px-3 py-1 rounded hover:bg-yellow-600">
                 Edit
             </button>
             <button onclick="deleteClinic({{clinic.id}})" class="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600">
@@ -49,6 +49,13 @@
                         <label class="block text-sm font-medium text-gray-700">Location</label>
                         <input type="text" id="clinicLocation" name="clinic_location" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
                     </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Status</label>
+                        <select id="clinicStatus" name="is_active" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                            <option value="true">Active</option>
+                            <option value="false">Inactive</option>
+                        </select>
+                    </div>
                 </div>
                 <div class="mt-6 flex justify-end gap-3">
                     <button type="button" onclick="closeClinicModal()" class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200">
@@ -72,15 +79,13 @@ function openClinicModal(id = null, name = '', location = '', isActive = true) {
     const title = document.getElementById('modalTitle');
     const submitBtn = document.getElementById('submitBtn');
 
+    isActive = isActive == 'True' ? true : false;
+
     form.onsubmit = async (e) => {
         e.preventDefault();
+        const formData = new FormData(form);
+        const data = Object.fromEntries(formData);
         
-        const formData = {
-            clinic_name: document.getElementById('clinicName').value,
-            clinic_location: document.getElementById('clinicLocation').value, 
-            is_active: document.getElementById('clinicStatus').value === 'true'
-        };
-
         try {
             const url = id ? `/api/clinics/${id}/update` : '/api/clinics/add';
             const response = await fetch(url, {
@@ -88,7 +93,7 @@ function openClinicModal(id = null, name = '', location = '', isActive = true) {
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify(formData)
+                body: JSON.stringify(data)
             });
 
             if (response.ok) {
