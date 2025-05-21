@@ -228,7 +228,7 @@ def check_pricing(request: Request, db: Session = Depends(get_db)):
     date = request.query_params.get("date")
     service = request.query_params.get("service")
 
-    ## lets set time slot depending on the time if its morning 0-12 morining and 12-16 afternoon and 16-22 evening
+    ## set time slot depending on the time if its morning 0-12 morining and 12-16 afternoon and 16-22 evening
     if time >= "00:00" and time <= "12:00":
         time_slot = "morning"
     elif time >= "12:00" and time <= "16:00":
