@@ -120,9 +120,13 @@
                             <button onclick="viewAppointment({{ appointment.id }})"  class="text-blue-500 hover:text-blue-700 px-2 py-0.5 text-sm rounded border border-blue-500 hover:bg-blue-50">View</button>
                             {% if appointment.status != 'CANCELLED' %}
                                 {% if user.role != 'CUSTOMER' %}
-                                    <button onclick="showConfirmModal({{ appointment.id }})" class="text-green-500 hover:text-green-700 px-2 py-0.5 text-sm rounded border border-green-500 hover:bg-green-50">Confirm</button>
+                                    {% if appointment.status == 'CONFIRMED' %}
+                                        <button onclick="appointmentAction({{ appointment.id }}, 'COMPLETED')" class="text-green-500 hover:text-green-700 px-2 py-0.5 text-sm rounded border border-green-500 hover:bg-green-50">Complete</button>
+                                    {% elif appointment.status == 'PENDING' %}
+                                        <button onclick="showConfirmModal({{ appointment.id }})" class="text-green-500 hover:text-green-700 px-2 py-0.5 text-sm rounded border border-green-500 hover:bg-green-50">Confirm</button>
+                                    {% endif %}
                                 {% endif %}
-                            <button onclick="appointmentAction({{ appointment.id }}, 'CANCELLED')" class="text-red-500 hover:text-red-700 px-2 py-0.5 text-sm rounded border border-red-500 hover:bg-red-50">Cancel</button>
+                                <button onclick="appointmentAction({{ appointment.id }}, 'CANCELLED')" class="text-red-500 hover:text-red-700 px-2 py-0.5 text-sm rounded border border-red-500 hover:bg-red-50">Cancel</button>
                             {% endif %}
                         </div>
                     </td>
